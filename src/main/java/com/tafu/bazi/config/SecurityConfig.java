@@ -19,11 +19,14 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * SecurityConfig
  *
- * <p>描述: Spring Security 安全配置类。
+ * <p>
+ * 描述: Spring Security 安全配置类。
  *
- * <p>包含内容: 1. 过滤器链配置 (FilterChain) 2. 密码编码器配置 (BCrypt) 3. 认证管理器配置
+ * <p>
+ * 包含内容: 1. 过滤器链配置 (FilterChain) 2. 密码编码器配置 (BCrypt) 3. 认证管理器配置
  *
- * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
+ * <p>
+ * 维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
  * @author Zhihao Li
  * @since 2026-01-22
@@ -35,38 +38,35 @@ public class SecurityConfig {
 
   private final UserDetailsService userDetailsService;
 
-  // private final JwtAuthenticationFilter jwtAuthFilter; // To be implemented
+  private final JwtAuthenticationFilter jwtAuthFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers(
-                        "/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
-                    .permitAll()
-                    .anyRequest()
-                    .authenticated())
+            auth -> auth.requestMatchers(
+                "/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                .permitAll()
+                .anyRequest()
+                .authenticated())
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())
-    // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-    ;
+        .addFilterBefore(jwtAuthFilter,
+            org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
   @Bean
   public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-    org.springframework.web.cors.CorsConfiguration configuration =
-        new org.springframework.web.cors.CorsConfiguration();
+    org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
     configuration.setAllowedOriginPatterns(java.util.List.of("*"));
     configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(java.util.List.of("*"));
     configuration.setAllowCredentials(true);
-    org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
-        new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+    org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
   }
