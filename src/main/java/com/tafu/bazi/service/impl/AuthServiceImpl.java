@@ -22,11 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * AuthServiceImpl
  *
- * <p>
- * 描述: 认证业务逻辑实现。
+ * <p>描述: 认证业务逻辑实现。
  *
- * <p>
- * 维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
+ * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
  * @author Zhihao Li
  * @since 2026-01-22
@@ -52,13 +50,15 @@ public class AuthServiceImpl implements AuthService {
     verifyCode(request.getPhone(), request.getCode());
 
     // 2. 查找或创建用户
-    boolean[] isNewUserRef = { false };
-    User user = userRepository
-        .findByPhone(request.getPhone())
-        .orElseGet(() -> {
-          isNewUserRef[0] = true;
-          return registerUserByPhone(request.getPhone());
-        });
+    boolean[] isNewUserRef = {false};
+    User user =
+        userRepository
+            .findByPhone(request.getPhone())
+            .orElseGet(
+                () -> {
+                  isNewUserRef[0] = true;
+                  return registerUserByPhone(request.getPhone());
+                });
 
     // 3. 处理新用户积分
     if (isNewUserRef[0]) {
@@ -74,9 +74,10 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public AuthResponse loginWithPassword(AuthRequest.PasswordLogin request) {
-    User user = userRepository
-        .findByUsername(request.getUsername())
-        .orElseThrow(() -> new BusinessException(StandardErrorCode.AUTH_FAILED));
+    User user =
+        userRepository
+            .findByUsername(request.getUsername())
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.AUTH_FAILED));
 
     if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
       throw new BusinessException(StandardErrorCode.AUTH_FAILED);
@@ -93,10 +94,11 @@ public class AuthServiceImpl implements AuthService {
       throw new BusinessException(StandardErrorCode.PARAM_ERROR.getCode(), "用户名已存在");
     }
 
-    User user = User.builder()
-        .username(request.getUsername())
-        .passwordHash(passwordEncoder.encode(request.getPassword()))
-        .build();
+    User user =
+        User.builder()
+            .username(request.getUsername())
+            .passwordHash(passwordEncoder.encode(request.getPassword()))
+            .build();
 
     userRepository.save(user);
 
@@ -120,13 +122,14 @@ public class AuthServiceImpl implements AuthService {
     String code = String.valueOf(new Random().nextInt(899999) + 100000);
 
     // 保存到数据库
-    VerificationCode vc = VerificationCode.builder()
-        .phone(phone)
-        .code(code)
-        .expiresAt(LocalDateTime.now().plusMinutes(5))
-        .used(false)
-        .attempts(0)
-        .build();
+    VerificationCode vc =
+        VerificationCode.builder()
+            .phone(phone)
+            .code(code)
+            .expiresAt(LocalDateTime.now().plusMinutes(5))
+            .used(false)
+            .attempts(0)
+            .build();
 
     verificationCodeRepository.save(vc);
 
@@ -136,8 +139,10 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public AuthResponse getMe(String userId) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(StandardErrorCode.USER_NOT_FOUND));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.USER_NOT_FOUND));
 
     // Ensure specific fields like Points are up to date if needed,
     // although PointsService keeps them in sync.
@@ -151,9 +156,10 @@ public class AuthServiceImpl implements AuthService {
       return;
     }
 
-    VerificationCode vc = verificationCodeRepository
-        .findFirstByPhoneAndUsedFalseOrderByCreatedAtDesc(phone)
-        .orElseThrow(() -> new BusinessException(StandardErrorCode.VERIFY_CODE_ERROR));
+    VerificationCode vc =
+        verificationCodeRepository
+            .findFirstByPhoneAndUsedFalseOrderByCreatedAtDesc(phone)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.VERIFY_CODE_ERROR));
 
     if (vc.getExpiresAt().isBefore(LocalDateTime.now())) {
       throw new BusinessException(StandardErrorCode.VERIFY_CODE_ERROR);

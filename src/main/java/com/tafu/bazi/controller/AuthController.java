@@ -14,14 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * AuthController
  *
- * <p>
- * 描述: 认证相关 API 接口。
+ * <p>描述: 认证相关 API 接口。
  *
- * <p>
- * 包含内容: 1. 手机号登录接口 2. 密码登录接口 3. 注册接口 4. 发送验证码接口
+ * <p>包含内容: 1. 手机号登录接口 2. 密码登录接口 3. 注册接口 4. 发送验证码接口
  *
- * <p>
- * 维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
+ * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
  * @author Zhihao Li
  * @since 2026-01-22
@@ -58,7 +55,8 @@ public class AuthController {
 
   @org.springframework.web.bind.annotation.GetMapping("/me")
   public ApiResponse<AuthResponse> getMe(
-      @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+      @org.springframework.security.core.annotation.AuthenticationPrincipal
+          org.springframework.security.core.userdetails.UserDetails userDetails) {
     return ApiResponse.success(authService.getMe(userDetails.getUsername()));
   }
 }
