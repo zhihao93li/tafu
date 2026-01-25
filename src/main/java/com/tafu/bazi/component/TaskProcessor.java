@@ -47,12 +47,18 @@ public class TaskProcessor {
   private final AiPromptsConfig aiPromptsConfig;
   private final ObjectMapper objectMapper;
 
+  private final org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor taskExecutor;
+
   @Scheduled(fixedDelay = 2000) // 每2秒轮询一次
+  @net.javacrumbs.shedlock.spring.annotation.SchedulerLock(
+      name = "processPendingTasks",
+      lockAtLeastFor = "PT2S",
+      lockAtMostFor = "PT10S")
   public void processPendingTasks() {
     List<Task> pendingTasks = taskRepository.findByStatusAndType("pending", "THEME_UNLOCK");
 
     for (Task task : pendingTasks) {
-      processTask(task);
+      taskExecutor.submit(() -> processTask(task));
     }
   }
 
