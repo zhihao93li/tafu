@@ -20,7 +20,7 @@
         <testcontainers.version>1.19.7</testcontainers.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok.version>1.18.30</lombok.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <spotless.version>2.43.0</spotless.version>
         <lunar.version>1.7.7</lunar.version> <!-- cn.6tail:lunar -->
     </properties>
