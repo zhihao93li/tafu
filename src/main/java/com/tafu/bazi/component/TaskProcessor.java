@@ -55,7 +55,9 @@ public class TaskProcessor {
       lockAtLeastFor = "PT2S",
       lockAtMostFor = "PT10S")
   public void processPendingTasks() {
-    List<Task> pendingTasks = taskRepository.findByStatusAndType("pending", "THEME_UNLOCK");
+    List<Task> pendingTasks =
+        taskRepository.findByStatusAndType(
+            "pending", "THEME_UNLOCK", org.springframework.data.domain.PageRequest.of(0, 50));
 
     for (Task task : pendingTasks) {
       taskExecutor.submit(() -> processTask(task));

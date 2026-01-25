@@ -23,7 +23,8 @@ public interface TaskRepository
 
   List<Task> findByUserIdAndStatus(String userId, String status);
 
-  List<Task> findByStatusAndType(String status, String type);
+  List<Task> findByStatusAndType(
+      String status, String type, org.springframework.data.domain.Pageable pageable);
 
   Optional<Task> findByIdAndUserId(String id, String userId);
 }
