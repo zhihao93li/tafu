@@ -135,7 +135,7 @@
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
-            <version>25.0.0</version> <!-- Check latest -->
+            <version>31.2.0</version> <!-- Check latest -->
         </dependency>
         <!-- Dotenv -->
         <dependency>
