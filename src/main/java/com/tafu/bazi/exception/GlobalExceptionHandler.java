@@ -55,6 +55,7 @@ public class GlobalExceptionHandler {
     log.error("Unhandled exception at {}: ", request.getRequestURI(), e);
     // 生产环境隐藏具体错误堆栈，仅返回通过错误提示
     return ApiResponse.error(
-        StandardErrorCode.SYSTEM_ERROR.getCode(), StandardErrorCode.SYSTEM_ERROR.getMessage());
+        StandardErrorCode.SYSTEM_ERROR.getCode(),
+        "调试错误信息: " + e.getMessage() + " | Stack: " + e.toString());
   }
 }
