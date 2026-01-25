@@ -33,14 +33,14 @@ src/main/java/com/tafu/bazi/dto/response/SubjectResponse.java 2026-01-22T10:21:3
 src/main/java/com/tafu/bazi/entity/Admin.java 2026-01-22T10:23:03.548217529Z
 src/main/java/com/tafu/bazi/entity/FortuneReport.java 2026-01-22T10:23:03.576312878Z
 src/main/java/com/tafu/bazi/entity/PaymentOrder.java 2026-01-22T10:23:03.608879646Z
-src/main/java/com/tafu/bazi/entity/PointsAccount.java 2026-01-22T10:23:03.518710721Z
+src/main/java/com/tafu/bazi/entity/PointsAccount.java 2026-01-25T07:06:47.570951146Z
 src/main/java/com/tafu/bazi/entity/PointsPackage.java 2026-01-22T10:23:03.538684232Z
 src/main/java/com/tafu/bazi/entity/PointsTransaction.java 2026-01-22T10:23:03.640839455Z
 src/main/java/com/tafu/bazi/entity/Subject.java 2026-01-22T10:23:03.565996122Z
 src/main/java/com/tafu/bazi/entity/Task.java 2026-01-22T10:23:03.632487492Z
 src/main/java/com/tafu/bazi/entity/ThemeAnalysis.java 2026-01-22T10:23:03.588532385Z
 src/main/java/com/tafu/bazi/entity/ThemePricing.java 2026-01-22T10:23:03.528109852Z
-src/main/java/com/tafu/bazi/entity/User.java 2026-01-22T10:23:03.597709765Z
+src/main/java/com/tafu/bazi/entity/User.java 2026-01-25T07:06:47.585884407Z
 src/main/java/com/tafu/bazi/entity/VerificationCode.java 2026-01-22T10:23:03.622409570Z
 src/main/java/com/tafu/bazi/exception/BusinessException.java 2026-01-22T10:24:46.980441175Z
 src/main/java/com/tafu/bazi/exception/ErrorCode.java 2026-01-22T10:24:46.968028544Z

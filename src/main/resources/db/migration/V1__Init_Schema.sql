@@ -140,7 +140,7 @@ CREATE TABLE tasks (
     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP(3),
     completed_at TIMESTAMP(3),
-    CONSTRAINT fk_user_tasks FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE // Assuming user relation exists based on context, otherwise remove Constraint
+    CONSTRAINT fk_user_tasks FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE -- Assuming user relation exists based on context, otherwise remove Constraint
 );
 CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at);
 CREATE INDEX idx_tasks_status ON tasks(status);

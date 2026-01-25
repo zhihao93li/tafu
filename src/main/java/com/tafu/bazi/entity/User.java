@@ -49,6 +49,6 @@ public class User {
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
-  @OneToOne(mappedBy = "userId", fetch = FetchType.LAZY)
+  @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
   private PointsAccount pointsAccount;
 }

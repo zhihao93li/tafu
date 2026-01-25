@@ -46,4 +46,10 @@ public class PointsAccount {
   @LastModifiedDate
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
+
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", insertable = false, updatable = false)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private User user;
 }
