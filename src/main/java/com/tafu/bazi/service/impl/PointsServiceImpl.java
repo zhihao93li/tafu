@@ -81,7 +81,13 @@ public class PointsServiceImpl implements PointsService {
   @Override
   public void ensureAccountExists(String userId) {
     if (accountRepository.findByUserId(userId).isEmpty()) {
-      PointsAccount account = PointsAccount.builder().userId(userId).balance(0).build();
+      PointsAccount account =
+          PointsAccount.builder()
+              .userId(userId)
+              .balance(0)
+              .createdAt(java.time.LocalDateTime.now())
+              .updatedAt(java.time.LocalDateTime.now())
+              .build();
       accountRepository.save(account);
     }
   }
@@ -102,6 +108,7 @@ public class PointsServiceImpl implements PointsService {
             .amount(amount)
             .balance(balance)
             .description(description)
+            .createdAt(java.time.LocalDateTime.now())
             .build();
     transactionRepository.save(transaction);
   }

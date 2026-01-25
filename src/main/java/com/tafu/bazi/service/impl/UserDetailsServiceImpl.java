@@ -34,10 +34,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         userRepository
             .findByUsername(usernameOrPhone)
             .or(() -> userRepository.findByPhone(usernameOrPhone))
+            .or(() -> userRepository.findById(usernameOrPhone))
             .orElseThrow(
                 () ->
                     new UsernameNotFoundException(
-                        "User not found with username or phone: " + usernameOrPhone));
+                        "User not found with username, phone or id: " + usernameOrPhone));
 
     // 返回 Spring Security User 对象 (无权限信息)
     return new org.springframework.security.core.userdetails.User(

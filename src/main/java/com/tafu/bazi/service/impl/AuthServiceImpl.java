@@ -98,6 +98,8 @@ public class AuthServiceImpl implements AuthService {
         User.builder()
             .username(request.getUsername())
             .passwordHash(passwordEncoder.encode(request.getPassword()))
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
             .build();
 
     userRepository.save(user);
@@ -175,7 +177,12 @@ public class AuthServiceImpl implements AuthService {
   }
 
   private User registerUserByPhone(String phone) {
-    User user = User.builder().phone(phone).build();
+    User user =
+        User.builder()
+            .phone(phone)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
     return userRepository.save(user);
   }
 
