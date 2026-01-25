@@ -1,0 +1,6 @@
+{
+    "build_command": "mvn clean package -DskipTests",
+    "start_command": "java -jar target/*.jar --server.port=$PORT",
+    "build_output": "target",
+    "primary_port": 8080
+}
