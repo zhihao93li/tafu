@@ -28,11 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * TaskProcessor
  *
- * <p>
- * 描述: 异步任务处理器，处理主题解锁等耗时任务。
+ * <p>描述: 异步任务处理器，处理主题解锁等耗时任务。
  *
- * <p>
- * 维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
+ * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
  * @author Zhihao Li
  * @since 2026-01-22
@@ -52,10 +50,14 @@ public class TaskProcessor {
   private final org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor taskExecutor;
 
   @Scheduled(fixedDelay = 2000) // 每2秒轮询一次
-  @net.javacrumbs.shedlock.spring.annotation.SchedulerLock(name = "processPendingTasks", lockAtLeastFor = "PT2S", lockAtMostFor = "PT10S")
+  @net.javacrumbs.shedlock.spring.annotation.SchedulerLock(
+      name = "processPendingTasks",
+      lockAtLeastFor = "PT2S",
+      lockAtMostFor = "PT10S")
   public void processPendingTasks() {
-    List<Task> pendingTasks = taskRepository.findByStatusAndType(
-        "pending", "THEME_UNLOCK", org.springframework.data.domain.PageRequest.of(0, 50));
+    List<Task> pendingTasks =
+        taskRepository.findByStatusAndType(
+            "pending", "THEME_UNLOCK", org.springframework.data.domain.PageRequest.of(0, 50));
 
     List<java.util.concurrent.CompletableFuture<Void>> futures = new java.util.ArrayList<>();
     for (Task task : pendingTasks) {
@@ -66,7 +68,7 @@ public class TaskProcessor {
     if (!futures.isEmpty()) {
       try {
         java.util.concurrent.CompletableFuture.allOf(
-            futures.toArray(new java.util.concurrent.CompletableFuture[0]))
+                futures.toArray(new java.util.concurrent.CompletableFuture[0]))
             .join();
       } catch (Exception e) {
         log.error("Error waiting for tasks to complete", e);
@@ -110,7 +112,8 @@ public class TaskProcessor {
 
     // 2. Prepare Data
     Subject subject = subjectService.getEntity(userId, subjectId);
-    AiPromptsConfig.ThemePromptTemplate template = aiPromptsConfig.getPrompts().getThemes().get(theme);
+    AiPromptsConfig.ThemePromptTemplate template =
+        aiPromptsConfig.getPrompts().getThemes().get(theme);
 
     if (template == null) {
       throw new RuntimeException("Theme template not found: " + theme);
@@ -120,11 +123,12 @@ public class TaskProcessor {
     String userPrompt = replacePlaceholders(template.getUser(), subject);
 
     // 3. Call AI
-    String aiResponse = chatClient
-        .prompt(
-            new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
-        .call()
-        .content();
+    String aiResponse =
+        chatClient
+            .prompt(
+                new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
+            .call()
+            .content();
 
     // 4. Save Result
     ThemeAnalysis analysis = new ThemeAnalysis();
@@ -141,13 +145,13 @@ public class TaskProcessor {
   }
 
   private String replacePlaceholders(String template, Subject subject) {
-    if (template == null)
-      return "";
+    if (template == null) return "";
     String result = template;
 
-    result = result
-        .replace("{{ gender }}", subject.getGender())
-        .replace("{{gender}}", subject.getGender());
+    result =
+        result
+            .replace("{{ gender }}", subject.getGender())
+            .replace("{{gender}}", subject.getGender());
 
     if (result.contains("baziMinimalJson")) {
       try {
