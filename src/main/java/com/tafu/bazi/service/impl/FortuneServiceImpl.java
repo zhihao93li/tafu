@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,6 +23,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 /**
  * FortuneServiceImpl
@@ -88,6 +90,50 @@ public class FortuneServiceImpl implements FortuneService {
     // Better call update explicitly if separation of concern needed
 
     return result;
+  }
+
+  @Override
+  public Flux<String> analyzeInitialStream(String userId, String subjectId) {
+    Subject subject = subjectService.getEntity(userId, subjectId);
+
+    // 如果已经分析过，返回已有结果
+    if (subject.getInitialAnalysis() != null && !subject.getInitialAnalysis().isEmpty()) {
+      String content = (String) subject.getInitialAnalysis().get("content");
+      return Flux.just(content != null ? content : "");
+    }
+
+    // 1. 准备 Prompt
+    String systemPrompt = aiPromptsConfig.getPrompts().getInitial().getSystem();
+    String userPromptTemplate = aiPromptsConfig.getPrompts().getInitial().getUser();
+    String userPrompt = replacePlaceholders(userPromptTemplate, subject);
+
+    // 2. 调用 AI 流式接口
+    AtomicReference<StringBuilder> fullContent = new AtomicReference<>(new StringBuilder());
+
+    return chatClient
+        .prompt(new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
+        .stream()
+        .content()
+        .doOnNext(chunk -> fullContent.get().append(chunk))
+        .doOnComplete(
+            () -> {
+              // 流式传输完成后保存完整结果
+              try {
+                Map<String, Object> result = new HashMap<>();
+                result.put("content", fullContent.get().toString());
+                subject.setInitialAnalysis(result);
+                subject.setInitialAnalyzedAt(LocalDateTime.now());
+                log.info("Stream analysis completed for subject: {}", subjectId);
+              } catch (Exception e) {
+                log.error("Failed to save stream analysis result", e);
+              }
+            })
+        .onErrorResume(
+            e -> {
+              log.error("AI Stream Call Failed", e);
+              return Flux.error(
+                  new BusinessException(StandardErrorCode.SYSTEM_ERROR.getCode(), "AI 服务暂时不可用"));
+            });
   }
 
   private String replacePlaceholders(String template, Subject subject) {

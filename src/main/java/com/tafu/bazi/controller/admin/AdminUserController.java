@@ -7,6 +7,7 @@ import com.tafu.bazi.exception.BusinessException;
 import com.tafu.bazi.exception.StandardErrorCode;
 import com.tafu.bazi.repository.UserRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
  * AdminUserController
  *
  * <p>描述: 管理后台-用户管理 API。
+ *
+ * <p>包含内容: 1. 用户列表查询 (分页) 2. 用户详情查询 3. 用户信息更新 4. 用户删除
  *
  * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
@@ -79,5 +82,48 @@ public class AdminUserController {
             .build();
 
     return ApiResponse.success(dto);
+  }
+
+  @PutMapping("/{id}")
+  public ApiResponse<AdminUserResponse> update(
+      @PathVariable String id, @RequestBody Map<String, String> request) {
+    User user =
+        userRepository
+            .findById(id)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    // 更新允许修改的字段
+    if (request.containsKey("username")) {
+      user.setUsername(request.get("username"));
+    }
+    if (request.containsKey("phone")) {
+      user.setPhone(request.get("phone"));
+    }
+    user.setUpdatedAt(java.time.LocalDateTime.now());
+
+    userRepository.save(user);
+
+    AdminUserResponse dto =
+        AdminUserResponse.builder()
+            .id(user.getId())
+            .phone(user.getPhone())
+            .username(user.getUsername())
+            .balance(user.getPointsAccount() != null ? user.getPointsAccount().getBalance() : 0)
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+
+    return ApiResponse.success(dto);
+  }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Void> delete(@PathVariable String id) {
+    User user =
+        userRepository
+            .findById(id)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    userRepository.delete(user);
+    return ApiResponse.success();
   }
 }

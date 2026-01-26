@@ -750,4 +750,74 @@ public class BaziServiceImpl implements BaziService {
         .daYunList(daYunList)
         .build();
   }
+
+  @Override
+  public int getLeapMonth(int year) {
+    try {
+      // 使用 LunarYear 获取指定年份的闰月信息
+      com.nlf.calendar.LunarYear lunarYear = com.nlf.calendar.LunarYear.fromYear(year);
+      return lunarYear.getLeapMonth();
+    } catch (Exception e) {
+      log.error("Failed to get leap month for year: {}", year, e);
+      return 0; // 出错时返回 0 表示无闰月
+    }
+  }
+
+  @Override
+  public Map<String, Double> getCoordinates(String location) {
+    // 从 city-geo-data.json 获取经纬度信息
+    double longitude = LunarUtils.getLongitude(location);
+
+    // 根据经度估算纬度（简化处理，实际应从完整数据获取）
+    // 中国大陆纬度范围约 18°-54°，这里使用中间值 35°
+    double latitude = 35.0;
+
+    // 尝试从 LunarUtils 的数据中精确查找
+    List<LunarUtils.CityGeoItem> cityGeoData = getCityGeoData(location);
+    if (!cityGeoData.isEmpty()) {
+      LunarUtils.CityGeoItem item = cityGeoData.get(0);
+      try {
+        latitude = Double.parseDouble(item.getLat());
+      } catch (NumberFormatException e) {
+        log.warn("Failed to parse latitude for location: {}", location);
+      }
+    }
+
+    Map<String, Double> result = new HashMap<>();
+    result.put("lng", longitude);
+    result.put("lat", latitude);
+    return result;
+  }
+
+  /**
+   * 从地点字符串查找城市地理数据
+   *
+   * @param location 地点字符串
+   * @return 匹配的地理数据列表
+   */
+  private List<LunarUtils.CityGeoItem> getCityGeoData(String location) {
+    // 由于 LunarUtils.cityGeoData 是私有的，这里通过反射访问
+    // 更好的做法是在 LunarUtils 中添加公共查询方法
+    try {
+      java.lang.reflect.Field field = LunarUtils.class.getDeclaredField("cityGeoData");
+      field.setAccessible(true);
+      @SuppressWarnings("unchecked")
+      List<LunarUtils.CityGeoItem> data = (List<LunarUtils.CityGeoItem>) field.get(null);
+
+      String[] parts = location.split("/");
+      String searchTerm = parts.length > 0 ? parts[parts.length - 1].trim() : location;
+
+      return data.stream()
+          .filter(
+              item ->
+                  (item.getArea() != null && item.getArea().contains(searchTerm))
+                      || (item.getCity() != null && item.getCity().contains(searchTerm))
+                      || (item.getProvince() != null && item.getProvince().contains(searchTerm)))
+          .limit(1)
+          .toList();
+    } catch (Exception e) {
+      log.warn("Failed to access cityGeoData via reflection", e);
+      return Collections.emptyList();
+    }
+  }
 }

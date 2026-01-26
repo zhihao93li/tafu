@@ -21,4 +21,6 @@ public interface PaymentOrderRepository
         org.springframework.data.jpa.repository.JpaSpecificationExecutor<PaymentOrder> {
 
   Optional<PaymentOrder> findByOrderNo(String orderNo);
+
+  Optional<PaymentOrder> findByStripeSessionId(String stripeSessionId);
 }

@@ -8,6 +8,7 @@ import com.tafu.bazi.repository.SubjectRepository;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
  * AdminSubjectController
  *
  * <p>描述: 管理后台-命盘管理 API。
+ *
+ * <p>包含内容: 1. 命盘列表查询 (分页、筛选) 2. 命盘详情查询 3. 命盘信息更新 4. 命盘删除
  *
  * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
@@ -64,5 +67,40 @@ public class AdminSubjectController {
         subjectRepository
             .findById(id)
             .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND)));
+  }
+
+  @PutMapping("/{id}")
+  public ApiResponse<Subject> update(
+      @PathVariable String id, @RequestBody Map<String, Object> request) {
+    Subject subject =
+        subjectRepository
+            .findById(id)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    // 允许更新的字段
+    if (request.containsKey("name")) {
+      subject.setName((String) request.get("name"));
+    }
+    if (request.containsKey("note")) {
+      subject.setNote((String) request.get("note"));
+    }
+    if (request.containsKey("relationship")) {
+      subject.setRelationship((String) request.get("relationship"));
+    }
+    subject.setUpdatedAt(java.time.LocalDateTime.now());
+
+    subjectRepository.save(subject);
+    return ApiResponse.success(subject);
+  }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Void> delete(@PathVariable String id) {
+    Subject subject =
+        subjectRepository
+            .findById(id)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    subjectRepository.delete(subject);
+    return ApiResponse.success();
   }
 }
