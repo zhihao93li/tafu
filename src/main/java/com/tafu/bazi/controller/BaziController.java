@@ -2,6 +2,7 @@ package com.tafu.bazi.controller;
 
 import com.tafu.bazi.dto.request.BaziCalculateRequest;
 import com.tafu.bazi.dto.response.ApiResponse;
+import com.tafu.bazi.dto.response.BaziResponse;
 import com.tafu.bazi.service.BaziService;
 import jakarta.validation.Valid;
 import java.util.HashMap;
@@ -35,8 +36,7 @@ public class BaziController {
   private final BaziService baziService;
 
   @PostMapping("/calculate")
-  public ApiResponse<Map<String, Object>> calculate(
-      @RequestBody @Valid BaziCalculateRequest request) {
+  public ApiResponse<BaziResponse> calculate(@RequestBody @Valid BaziCalculateRequest request) {
     return ApiResponse.success(baziService.calculate(request));
   }
 

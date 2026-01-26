@@ -1,7 +1,9 @@
 package com.tafu.bazi.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tafu.bazi.dto.request.BaziCalculateRequest;
 import com.tafu.bazi.dto.request.SubjectRequest;
+import com.tafu.bazi.dto.response.BaziResponse;
 import com.tafu.bazi.dto.response.SubjectResponse;
 import com.tafu.bazi.entity.Subject;
 import com.tafu.bazi.exception.BusinessException;
@@ -35,6 +37,7 @@ public class SubjectServiceImpl implements SubjectService {
   private final SubjectRepository subjectRepository;
   private final BaziService baziService;
   private final com.tafu.bazi.repository.FortuneReportRepository fortuneReportRepository;
+  private final ObjectMapper objectMapper;
 
   @Override
   @Transactional
@@ -119,7 +122,14 @@ public class SubjectServiceImpl implements SubjectService {
     calcRequest.setGender(request.getGender());
     calcRequest.setLeapMonth(request.isLeapMonth());
     calcRequest.setLocation(request.getLocation());
-    return baziService.calculate(calcRequest);
+
+    // 调用八字计算服务（返回强类型 DTO）
+    BaziResponse baziResponse = baziService.calculate(calcRequest);
+
+    // 将 BaziResponse 转换为 Map 用于存储到数据库 JSONB 字段
+    @SuppressWarnings("unchecked")
+    Map<String, Object> baziData = objectMapper.convertValue(baziResponse, Map.class);
+    return baziData;
   }
 
   private SubjectResponse toResponse(Subject subject) {

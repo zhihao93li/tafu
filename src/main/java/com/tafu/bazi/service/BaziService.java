@@ -1,6 +1,7 @@
 package com.tafu.bazi.service;
 
 import com.tafu.bazi.dto.request.BaziCalculateRequest;
+import com.tafu.bazi.dto.response.BaziResponse;
 import java.util.Map;
 
 /**
@@ -14,6 +15,7 @@ import java.util.Map;
  *
  * @author Zhihao Li
  * @since 2026-01-22
+ * @updated 2026-01-26 - 返回类型从 Map 改为强类型 BaziResponse
  */
 public interface BaziService {
 
@@ -21,9 +23,9 @@ public interface BaziService {
    * 计算八字排盘
    *
    * @param request 出生信息
-   * @return 八字排盘数据 (Map 结构对应前端 TS 接口 BaziData)
+   * @return 八字排盘数据（强类型 DTO）
    */
-  Map<String, Object> calculate(BaziCalculateRequest request);
+  BaziResponse calculate(BaziCalculateRequest request);
 
   /**
    * 获取指定年份的闰月信息
