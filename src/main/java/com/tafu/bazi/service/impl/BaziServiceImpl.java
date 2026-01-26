@@ -1139,12 +1139,19 @@ public class BaziServiceImpl implements BaziService {
         int age = startAge + (year - startYear);
 
         // 使用lunar-java库计算流年干支
+        // 使用7月1日(年中)来确保一定过了立春,获取该年正确的干支
+        // 立春通常在2月3-5日,使用7月1日可以100%确保已经过了立春
         try {
-          Solar solar = Solar.fromYmd(year, 1, 1);
+          Solar solar = Solar.fromYmd(year, 7, 1);
           Lunar lunar = solar.getLunar();
           String yearGanZhi = lunar.getYearInGanZhiExact(); // 精确年干支
           String yearGan = yearGanZhi.length() >= 1 ? yearGanZhi.substring(0, 1) : "";
           String yearZhi = yearGanZhi.length() >= 2 ? yearGanZhi.substring(1, 2) : "";
+
+          // 调试日志: 输出前几年的结果用于验证
+          if (year >= 2023 && year <= 2027) {
+            log.info("流年计算: {}年 = {}", year, yearGanZhi);
+          }
 
           liuNianList.add(
               BaziResult.LiuNian.builder()
