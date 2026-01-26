@@ -6,13 +6,17 @@ import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.tafu.bazi.config.MazfuConfig;
 import com.tafu.bazi.config.StripeConfig;
+import com.tafu.bazi.dto.MazfuCreatePaymentRequest;
+import com.tafu.bazi.dto.MazfuCreatePaymentResult;
 import com.tafu.bazi.entity.PaymentOrder;
 import com.tafu.bazi.entity.PointsPackage;
 import com.tafu.bazi.exception.BusinessException;
 import com.tafu.bazi.exception.StandardErrorCode;
 import com.tafu.bazi.repository.PaymentOrderRepository;
 import com.tafu.bazi.repository.PointsPackageRepository;
+import com.tafu.bazi.service.MazfuService;
 import com.tafu.bazi.service.PaymentService;
 import com.tafu.bazi.service.PointsService;
 import java.time.LocalDateTime;
@@ -45,6 +49,8 @@ public class PaymentServiceImpl implements PaymentService {
   private final PointsPackageRepository packageRepository;
   private final PointsService pointsService;
   private final StripeConfig stripeConfig;
+  private final MazfuConfig mazfuConfig;
+  private final MazfuService mazfuService;
 
   @Override
   public List<PointsPackage> getActivePackages() {
@@ -232,6 +238,77 @@ public class PaymentServiceImpl implements PaymentService {
     pointsService.addPoints(order.getUserId(), order.getPoints(), "recharge", "充值订单: " + orderNo);
 
     log.info("Order {} payment completed successfully", orderNo);
+  }
+
+  @Override
+  @Transactional
+  public Map<String, Object> createMazfuOrder(String userId, String packageId, String device) {
+    if (!mazfuConfig.isConfigured()) {
+      throw new BusinessException(StandardErrorCode.SYSTEM_ERROR.getCode(), "码支付服务未配置");
+    }
+
+    PointsPackage pkg =
+        packageRepository
+            .findById(packageId)
+            .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    if (!pkg.getIsActive()) {
+      throw new BusinessException(StandardErrorCode.FORBIDDEN.getCode(), "该套餐已下架");
+    }
+
+    // 创建订单
+    PaymentOrder order =
+        PaymentOrder.builder()
+            .userId(userId)
+            .orderNo(generateOrderNo())
+            .amount(pkg.getPrice())
+            .points(pkg.getPoints())
+            .paymentMethod("alipay_qrcode")
+            .status("pending")
+            .build();
+
+    orderRepository.save(order);
+
+    // 码支付二维码优惠 50 分
+    int qrcodeDiscount = 50;
+    int actualPayAmount = Math.max(pkg.getPrice() - qrcodeDiscount, 1);
+
+    // 调用码支付服务创建支付
+    MazfuCreatePaymentRequest request =
+        MazfuCreatePaymentRequest.builder()
+            .orderNo(order.getOrderNo())
+            .amount(actualPayAmount)
+            .productName(pkg.getName())
+            .device(device)
+            .build();
+
+    MazfuCreatePaymentResult result = mazfuService.createPayment(request);
+
+    if (!result.getSuccess()) {
+      order.setStatus("failed");
+      orderRepository.save(order);
+      throw new BusinessException(
+          StandardErrorCode.SYSTEM_ERROR.getCode(),
+          result.getMessage() != null ? result.getMessage() : "创建支付请求失败");
+    }
+
+    // 更新订单，保存码支付订单号
+    if (result.getTradeNo() != null) {
+      order.setTransactionId(result.getTradeNo());
+      orderRepository.save(order);
+    }
+
+    // 构造返回结果
+    Map<String, Object> response = new HashMap<>();
+    response.put("success", true);
+    response.put("orderNo", order.getOrderNo());
+    response.put("amount", pkg.getPrice());
+    response.put("points", pkg.getPoints());
+    if (result.getQrcode() != null) response.put("qrcode", result.getQrcode());
+    if (result.getPayurl() != null) response.put("payurl", result.getPayurl());
+    if (result.getMoney() != null) response.put("money", result.getMoney());
+
+    return response;
   }
 
   private String generateOrderNo() {

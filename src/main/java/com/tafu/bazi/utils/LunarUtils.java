@@ -198,5 +198,6 @@ public class LunarUtils {
     private String lat;
     private String lng;
     private String country;
+    private String code; // 行政区划代码
   }
 }

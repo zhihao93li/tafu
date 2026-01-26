@@ -35,6 +35,7 @@ spring:
 app:
   task:
     pool-size: ${TASK_POOL_SIZE:5}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
 # Stripe Configuration
 stripe:
@@ -42,6 +43,15 @@ stripe:
     key: ${STRIPE_API_KEY:}
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET:}
+
+# Mazfu Payment Configuration
+mazfu:
+  pid: ${MAZFU_PID:}
+  key: ${MAZFU_KEY:}
+  api:
+    base-url: ${MAZFU_API_BASE_URL:https://www.mazfu.com}
+  notify-url: ${MAZFU_NOTIFY_URL:}
+  return-url: ${MAZFU_RETURN_URL:}
 
 logging:
   level:

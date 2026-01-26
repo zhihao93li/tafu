@@ -765,27 +765,38 @@ public class BaziServiceImpl implements BaziService {
 
   @Override
   public Map<String, Double> getCoordinates(String location) {
-    // 从 city-geo-data.json 获取经纬度信息
-    double longitude = LunarUtils.getLongitude(location);
+    log.info("===== 查询经纬度 =====");
+    log.info("输入location: [{}]", location);
 
-    // 根据经度估算纬度（简化处理，实际应从完整数据获取）
-    // 中国大陆纬度范围约 18°-54°，这里使用中间值 35°
-    double latitude = 35.0;
-
-    // 尝试从 LunarUtils 的数据中精确查找
+    // 从 city-geo-data.json 精确查找经纬度信息
     List<LunarUtils.CityGeoItem> cityGeoData = getCityGeoData(location);
+
+    double longitude = 116.4; // 默认北京经度
+    double latitude = 39.9; // 默认北京纬度
+
     if (!cityGeoData.isEmpty()) {
       LunarUtils.CityGeoItem item = cityGeoData.get(0);
+      log.info(
+          "✓ 找到匹配: {}省/{}/{}区, 经度={}, 纬度={}",
+          item.getProvince(),
+          item.getCity(),
+          item.getArea(),
+          item.getLng(),
+          item.getLat());
       try {
+        longitude = Double.parseDouble(item.getLng());
         latitude = Double.parseDouble(item.getLat());
       } catch (NumberFormatException e) {
-        log.warn("Failed to parse latitude for location: {}", location);
+        log.warn("Failed to parse coordinates for location: {}", location);
       }
+    } else {
+      log.warn("✗ 未找到匹配的地点: [{}]", location);
     }
 
     Map<String, Double> result = new HashMap<>();
     result.put("lng", longitude);
     result.put("lat", latitude);
+    log.info("返回结果: lng={}, lat={}", longitude, latitude);
     return result;
   }
 
@@ -804,17 +815,56 @@ public class BaziServiceImpl implements BaziService {
       @SuppressWarnings("unchecked")
       List<LunarUtils.CityGeoItem> data = (List<LunarUtils.CityGeoItem>) field.get(null);
 
-      String[] parts = location.split("/");
-      String searchTerm = parts.length > 0 ? parts[parts.length - 1].trim() : location;
+      if (data == null || data.isEmpty()) {
+        log.error("cityGeoData 为空或未加载！");
+        return Collections.emptyList();
+      }
 
-      return data.stream()
-          .filter(
-              item ->
-                  (item.getArea() != null && item.getArea().contains(searchTerm))
-                      || (item.getCity() != null && item.getCity().contains(searchTerm))
-                      || (item.getProvince() != null && item.getProvince().contains(searchTerm)))
-          .limit(1)
-          .toList();
+      log.debug("cityGeoData 已加载，总记录数: {}", data.size());
+
+      // 解析地点字符串: 省/市/区
+      String[] parts = location.split("/");
+      log.debug("解析结果: parts数量={}, 内容={}", parts.length, String.join(" | ", parts));
+
+      if (parts.length == 3) {
+        // 三级精确匹配
+        String province = parts[0].trim();
+        String city = parts[1].trim();
+        String area = parts[2].trim();
+        log.debug("三级匹配查询: province=[{}], city=[{}], area=[{}]", province, city, area);
+
+        return data.stream()
+            .filter(
+                item ->
+                    province.equals(item.getProvince())
+                        && city.equals(item.getCity())
+                        && area.equals(item.getArea()))
+            .limit(1)
+            .toList();
+      } else if (parts.length == 2) {
+        // 两级匹配: 省/市
+        String province = parts[0].trim();
+        String city = parts[1].trim();
+
+        return data.stream()
+            .filter(item -> province.equals(item.getProvince()) && city.equals(item.getCity()))
+            .limit(1)
+            .toList();
+      } else if (parts.length == 1) {
+        // 单级模糊匹配
+        String searchTerm = parts[0].trim();
+
+        return data.stream()
+            .filter(
+                item ->
+                    (item.getArea() != null && item.getArea().contains(searchTerm))
+                        || (item.getCity() != null && item.getCity().contains(searchTerm))
+                        || (item.getProvince() != null && item.getProvince().contains(searchTerm)))
+            .limit(1)
+            .toList();
+      }
+
+      return Collections.emptyList();
     } catch (Exception e) {
       log.warn("Failed to access cityGeoData via reflection", e);
       return Collections.emptyList();

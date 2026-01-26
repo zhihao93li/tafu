@@ -41,9 +41,9 @@ public class DataSeeder implements CommandLineRunner {
     log.info("Seeding Points Packages...");
     List<PointsPackage> packages =
         List.of(
-            createPackage("基础套餐", 100, 990, 1),
-            createPackage("超值套餐", 300, 2490, 2),
-            createPackage("尊享套餐", 1000, 6490, 3));
+            createPackage("基础套餐", 200, 1990, 1),
+            createPackage("超值套餐", 500, 4490, 2),
+            createPackage("尊享套餐", 1000, 7990, 3));
     pointsPackageRepository.saveAll(packages);
   }
 
