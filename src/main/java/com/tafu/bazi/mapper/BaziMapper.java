@@ -32,7 +32,8 @@ public class BaziMapper {
     @SuppressWarnings("unchecked")
     Map<String, Object> ebMap = (Map<String, Object>) pillarMap.get("earthlyBranch");
     @SuppressWarnings("unchecked")
-    List<String> hiddenStems = (List<String>) pillarMap.get("hiddenStems");
+    List<Map<String, String>> hiddenStemsRaw =
+        (List<Map<String, String>>) pillarMap.get("hiddenStems");
 
     HeavenlyStemDTO heavenlyStem =
         HeavenlyStemDTO.builder()
@@ -46,6 +47,21 @@ public class BaziMapper {
             .chinese((String) ebMap.get("chinese"))
             .element((String) ebMap.get("element"))
             .build();
+
+    // 将藏干 Map 列表转换为 HiddenStemDTO 列表
+    List<HiddenStemDTO> hiddenStems = null;
+    if (hiddenStemsRaw != null) {
+      hiddenStems =
+          hiddenStemsRaw.stream()
+              .map(
+                  stemMap ->
+                      HiddenStemDTO.builder()
+                          .chinese(stemMap.get("chinese"))
+                          .element(stemMap.get("element"))
+                          .yinYang(stemMap.get("yinYang"))
+                          .build())
+              .collect(Collectors.toList());
+    }
 
     return PillarDTO.builder()
         .heavenlyStem(heavenlyStem)
@@ -187,7 +203,7 @@ public class BaziMapper {
   }
 
   /**
-   * 映射大运数据（添加 gan/zhi 字段）
+   * 映射大运数据（添加 gan/zhi 字段和流年列表）
    *
    * @param daYun DaYun 模型
    * @return DaYunDTO
@@ -196,18 +212,43 @@ public class BaziMapper {
     if (daYun == null) return null;
 
     String ganZhi = daYun.getGanZhi();
-    String gan = ganZhi != null && ganZhi.length() >= 1 ? ganZhi.substring(0, 1) : null;
-    String zhi = ganZhi != null && ganZhi.length() >= 2 ? ganZhi.substring(1, 2) : null;
+    String gan = daYun.getGan();
+    String zhi = daYun.getZhi();
+
+    // 映射流年列表
+    List<LiuNianDTO> liuNianList =
+        daYun.getLiuNian() != null
+            ? daYun.getLiuNian().stream().map(this::mapLiuNian).collect(Collectors.toList())
+            : null;
 
     return DaYunDTO.builder()
         .index(daYun.getIndex())
         .startAge(daYun.getStartAge())
         .endAge(daYun.getEndAge())
         .ganZhi(ganZhi)
-        .gan(gan) // 新增字段
-        .zhi(zhi) // 新增字段
+        .gan(gan)
+        .zhi(zhi)
         .startYear(daYun.getStartYear())
         .endYear(daYun.getEndYear())
+        .liuNian(liuNianList)
+        .build();
+  }
+
+  /**
+   * 映射流年数据
+   *
+   * @param liuNian LiuNian 模型
+   * @return LiuNianDTO
+   */
+  public LiuNianDTO mapLiuNian(LiuNian liuNian) {
+    if (liuNian == null) return null;
+
+    return LiuNianDTO.builder()
+        .year(liuNian.getYear())
+        .age(liuNian.getAge())
+        .ganZhi(liuNian.getGanZhi())
+        .gan(liuNian.getGan())
+        .zhi(liuNian.getZhi())
         .build();
   }
 

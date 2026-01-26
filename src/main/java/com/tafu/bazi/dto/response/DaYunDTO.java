@@ -1,5 +1,6 @@
 package com.tafu.bazi.dto.response;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
@@ -35,4 +36,7 @@ public class DaYunDTO {
 
   /** 结束年份 */
   private int endYear;
+
+  /** 该大运内的流年列表 */
+  private List<LiuNianDTO> liuNian;
 }

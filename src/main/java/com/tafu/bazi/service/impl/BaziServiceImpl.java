@@ -16,6 +16,7 @@ import com.tafu.bazi.model.BaziResult.*;
 import com.tafu.bazi.service.BaziService;
 import com.tafu.bazi.utils.LunarUtils;
 import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -189,12 +190,26 @@ public class BaziServiceImpl implements BaziService {
       earthlyBranch.put("element", branchElement.getCode());
     }
 
+    // Build hiddenStems as object array (前端期望的结构)
+    List<String> hiddenStemsStr = LunarUtils.getHiddenStems(zhi);
+    List<Map<String, String>> hiddenStemsObj = new ArrayList<>();
+    for (String stem : hiddenStemsStr) {
+      StemInfo stemInfo = BaziDef.STEMS_INFO.get(stem);
+      Map<String, String> stemObj = new HashMap<>();
+      stemObj.put("chinese", stem);
+      if (stemInfo != null) {
+        stemObj.put("element", stemInfo.getElement().getCode());
+        stemObj.put("yinYang", stemInfo.getYinYang().name().toLowerCase());
+      }
+      hiddenStemsObj.add(stemObj);
+    }
+
     // Build complete pillar
     Map<String, Object> pillar = new HashMap<>();
     pillar.put("heavenlyStem", heavenlyStem);
     pillar.put("earthlyBranch", earthlyBranch);
     pillar.put("naYin", nayin);
-    pillar.put("hiddenStems", LunarUtils.getHiddenStems(zhi));
+    pillar.put("hiddenStems", hiddenStemsObj);
     pillar.put("tenGod", tenGod);
 
     return pillar;
@@ -218,10 +233,20 @@ public class BaziServiceImpl implements BaziService {
     return (String) earthlyBranch.get("chinese");
   }
 
-  /** 从 Map 结构提取藏干 */
+  /** 从 Map 结构提取藏干（现在藏干是对象数组，需要提取chinese字段） */
   @SuppressWarnings("unchecked")
   private List<String> extractHiddenStemsFromPillar(Map<String, Object> pillar) {
-    return (List<String>) pillar.get("hiddenStems");
+    Object hiddenStemsObj = pillar.get("hiddenStems");
+    if (hiddenStemsObj == null) {
+      return Collections.emptyList();
+    }
+
+    // 现在hiddenStems是List<Map<String, String>>，需要提取chinese字段
+    List<Map<String, String>> hiddenStemsList = (List<Map<String, String>>) hiddenStemsObj;
+    return hiddenStemsList.stream()
+        .map(stemMap -> stemMap.get("chinese"))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
   }
 
   private DayMaster calculateDayMasterFromMap(
@@ -1082,15 +1107,69 @@ public class BaziServiceImpl implements BaziService {
     List<BaziResult.DaYun> daYunList = new ArrayList<>();
     DaYun[] bigYunArray = yun.getDaYun(); // getDaYun() returns array, not List
 
+    // 获取当前年份（用于只计算相关的流年）
+    int currentYear = java.time.Year.now().getValue();
+
     for (DaYun dy : bigYunArray) {
+      // 拆分干支
+      String ganZhi = dy.getGanZhi();
+      String gan = ganZhi.length() >= 1 ? ganZhi.substring(0, 1) : "";
+      String zhi = ganZhi.length() >= 2 ? ganZhi.substring(1, 2) : "";
+
+      // 只为当前大运计算流年列表（优化性能）
+      List<BaziResult.LiuNian> liuNianList = new ArrayList<>();
+      int startYear = dy.getStartYear();
+      int startAge = dy.getStartAge();
+      int endYear = dy.getEndYear();
+
+      // 只计算当前大运范围内的流年（startYear到endYear之间）
+      // 这样可以让前端获取到完整的大运内流年数据，同时控制数据量
+      // lunar-java库支持的年份范围：1901-2100
+      final int MIN_YEAR = 1901;
+      final int MAX_YEAR = 2100;
+
+      // 为该大运内的每一年生成流年数据
+      for (int year = startYear; year <= endYear; year++) {
+        // 跳过超出支持范围的年份
+        if (year < MIN_YEAR || year > MAX_YEAR) {
+          log.debug("跳过不支持的年份: {}", year);
+          continue;
+        }
+
+        int age = startAge + (year - startYear);
+
+        // 使用lunar-java库计算流年干支
+        try {
+          Solar solar = Solar.fromYmd(year, 1, 1);
+          Lunar lunar = solar.getLunar();
+          String yearGanZhi = lunar.getYearInGanZhiExact(); // 精确年干支
+          String yearGan = yearGanZhi.length() >= 1 ? yearGanZhi.substring(0, 1) : "";
+          String yearZhi = yearGanZhi.length() >= 2 ? yearGanZhi.substring(1, 2) : "";
+
+          liuNianList.add(
+              BaziResult.LiuNian.builder()
+                  .year(year)
+                  .age(age)
+                  .ganZhi(yearGanZhi)
+                  .gan(yearGan)
+                  .zhi(yearZhi)
+                  .build());
+        } catch (Exception e) {
+          log.warn("计算流年失败 year={}: {}", year, e.getMessage());
+        }
+      }
+
       daYunList.add(
           BaziResult.DaYun.builder()
               .index(dy.getIndex())
               .startAge(dy.getStartAge())
               .endAge(dy.getEndAge())
-              .ganZhi(dy.getGanZhi())
+              .ganZhi(ganZhi)
+              .gan(gan)
+              .zhi(zhi)
               .startYear(dy.getStartYear())
               .endYear(dy.getEndYear())
+              .liuNian(liuNianList)
               .build());
     }
 

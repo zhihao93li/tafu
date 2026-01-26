@@ -22,8 +22,8 @@ public class PillarDTO {
   /** 纳音（如"海中金"） */
   private String naYin;
 
-  /** 藏干列表 */
-  private List<String> hiddenStems;
+  /** 藏干列表（对象数组，包含chinese/element/yinYang） */
+  private List<HiddenStemDTO> hiddenStems;
 
   /** 十神（相对日主） */
   private String tenGod;

@@ -135,9 +135,21 @@ public class BaziResult {
     private int startAge;
     private int endAge;
     private String ganZhi;
+    private String gan;
+    private String zhi;
     private int startYear;
     private int endYear;
-    // private List<LiuNian> liuNian; // Can add if needed
+    private List<LiuNian> liuNian;
+  }
+
+  @Data
+  @Builder
+  public static class LiuNian {
+    private int year;
+    private int age;
+    private String ganZhi;
+    private String gan;
+    private String zhi;
   }
 
   @Data
