@@ -15,8 +15,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
  *
  * <p>描述: Spring AI 相关配置。
  *
- * <p>包含内容: 1. ChatClient Bean 2. OpenAiChatOptions Bean (集中管理配置) 3. 加载 ai-prompts.yaml 4.
- * 启用异步 (@EnableAsync)
+ * <p>包含内容: 1. ChatClient Bean 2. OpenAiChatOptions Bean (集中管理配置) 3. 加载 ai-prompts.yaml 4. 启用异步
+ * (@EnableAsync)
  *
  * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *

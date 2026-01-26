@@ -67,7 +67,7 @@ public class FortuneServiceImpl implements FortuneService {
 
     // 2. 调用 AI with configured options
     log.info("Calling AI for initial analysis, subject: {}", subjectId);
-    
+
     String aiResponse;
     try {
       aiResponse =
@@ -114,7 +114,7 @@ public class FortuneServiceImpl implements FortuneService {
 
     // 2. 调用 AI 流式接口 with configured options
     log.info("Calling AI stream for initial analysis, subject: {}", subjectId);
-    
+
     AtomicReference<StringBuilder> fullContent = new AtomicReference<>(new StringBuilder());
 
     return chatClient
