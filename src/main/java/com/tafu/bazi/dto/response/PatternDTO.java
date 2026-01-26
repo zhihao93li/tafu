@@ -1,7 +1,9 @@
 package com.tafu.bazi.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 格局信息 DTO
@@ -11,6 +13,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PatternDTO {
   /** 格局名称（如"正财格"） */
   private String name;

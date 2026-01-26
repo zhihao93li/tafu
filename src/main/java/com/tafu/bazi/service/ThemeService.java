@@ -1,5 +1,6 @@
 package com.tafu.bazi.service;
 
+import com.tafu.bazi.dto.response.ThemeUnlockResponse;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +19,8 @@ import java.util.Map;
  */
 public interface ThemeService {
 
-  // 返回 TaskId (异步)
-  String unlockTheme(String userId, String subjectId, String themeName);
+  // 返回解锁响应对象 (包含 taskId 或 alreadyUnlocked)
+  ThemeUnlockResponse unlockTheme(String userId, String subjectId, String themeName);
 
   Map<String, Object> getThemeContent(String userId, String subjectId, String themeName);
 

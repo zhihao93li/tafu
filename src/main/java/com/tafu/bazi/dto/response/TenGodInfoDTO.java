@@ -1,8 +1,10 @@
 package com.tafu.bazi.dto.response;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 十神信息 DTO
@@ -12,6 +14,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TenGodInfoDTO {
   /** 十神名称 */
   private String name;

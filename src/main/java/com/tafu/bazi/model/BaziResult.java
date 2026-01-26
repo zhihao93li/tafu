@@ -2,8 +2,10 @@ package com.tafu.bazi.model;
 
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * BaziResult
@@ -31,6 +33,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class Pillar {
     private String gan; // Chinese char
     private String zhi; // Chinese char
@@ -41,6 +45,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class FourPillars {
     private Pillar year;
     private Pillar month;
@@ -50,6 +56,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class DayMaster {
     private String gan; // 天干
     private String strength; // strong, weak, balanced
@@ -58,6 +66,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class DayMasterAnalysis {
     private double deLing;
     private String deLingDesc;
@@ -70,6 +80,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class FiveElementsAnalysis {
     private Map<String, Double> distribution; // Element -> Score
     private Map<String, Integer> counts; // Element -> Count
@@ -83,11 +95,15 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class TenGodsAnalysis {
     private Map<String, TenGodInfo> gods; // TenGod Name -> Info
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TenGodInfo {
       private String name;
       private int count;
@@ -97,6 +113,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class PatternInfo {
     private String name;
     private String category; // normal, special
@@ -122,6 +140,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class YunInfo {
     private int startAge;
     private boolean forward;
@@ -130,6 +150,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class DaYun {
     private int index;
     private int startAge;
@@ -144,6 +166,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class LiuNian {
     private int year;
     private int age;
@@ -154,6 +178,8 @@ public class BaziResult {
 
   @Data
   @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class ShenShaInfo {
     private List<String> year;
     private List<String> month;

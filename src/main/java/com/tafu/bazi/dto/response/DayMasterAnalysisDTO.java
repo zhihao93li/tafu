@@ -1,7 +1,9 @@
 package com.tafu.bazi.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 日主强弱分析 DTO
@@ -11,6 +13,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DayMasterAnalysisDTO {
   /** 得令分数（0-100） */
   private double deLing;

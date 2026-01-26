@@ -1,7 +1,9 @@
 package com.tafu.bazi.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 藏干 DTO
@@ -11,6 +13,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class HiddenStemDTO {
   /** 藏干中文名称（如"辛"） */
   private String chinese;

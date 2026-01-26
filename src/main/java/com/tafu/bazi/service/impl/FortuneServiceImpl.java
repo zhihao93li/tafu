@@ -45,6 +45,7 @@ public class FortuneServiceImpl implements FortuneService {
   private final AiPromptsConfig aiPromptsConfig;
   private final ChatClient chatClient;
   private final ObjectMapper objectMapper;
+  private final org.springframework.ai.openai.OpenAiChatOptions openAiChatOptions;
 
   @Override
   @Transactional
@@ -64,13 +65,17 @@ public class FortuneServiceImpl implements FortuneService {
     // 实际开发中推荐使用 BeanWrapper 或 MapAccessor 替换
     String userPrompt = replacePlaceholders(userPromptTemplate, subject);
 
-    // 2. 调用 AI
+    // 2. 调用 AI with configured options
+    log.info("Calling AI for initial analysis, subject: {}", subjectId);
+    
     String aiResponse;
     try {
       aiResponse =
           chatClient
               .prompt(
-                  new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
+                  new Prompt(
+                      List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
+                      openAiChatOptions))
               .call()
               .content();
     } catch (Exception e) {
@@ -107,11 +112,16 @@ public class FortuneServiceImpl implements FortuneService {
     String userPromptTemplate = aiPromptsConfig.getPrompts().getInitial().getUser();
     String userPrompt = replacePlaceholders(userPromptTemplate, subject);
 
-    // 2. 调用 AI 流式接口
+    // 2. 调用 AI 流式接口 with configured options
+    log.info("Calling AI stream for initial analysis, subject: {}", subjectId);
+    
     AtomicReference<StringBuilder> fullContent = new AtomicReference<>(new StringBuilder());
 
     return chatClient
-        .prompt(new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
+        .prompt(
+            new Prompt(
+                List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
+                openAiChatOptions))
         .stream()
         .content()
         .doOnNext(chunk -> fullContent.get().append(chunk))

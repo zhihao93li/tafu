@@ -14,8 +14,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
+        format_sql: false
+    show-sql: false
     open-in-view: false
 
   flyway:
@@ -23,14 +23,11 @@ spring:
     baseline-on-migrate: true
 
   # AI Configuration (Spring AI)
+  # Note: Model configuration is now managed in ai-prompts.yaml
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
-      chat:
-        options:
-          model: ${OPENAI_MODEL:gpt-4o}
-          temperature: 0.7
+      api-key: ${AIHUBMIX_API_KEY}
+      base-url: ${AIHUBMIX_BASE_URL:https://aihubmix.com}
 
 app:
   task:
@@ -55,9 +52,11 @@ mazfu:
 
 logging:
   level:
-    com.tafu.bazi: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
+    com.tafu.bazi: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.ai: DEBUG
+    org.springframework.web.client: DEBUG
 
 server:
   port: ${PORT:3000}

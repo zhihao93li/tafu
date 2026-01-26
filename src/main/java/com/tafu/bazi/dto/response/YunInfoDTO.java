@@ -1,17 +1,21 @@
 package com.tafu.bazi.dto.response;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * 大运信息 DTO
+ * 运程信息 DTO
  *
  * @author Zhihao Li
  * @since 2026-01-26
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class YunInfoDTO {
   /** 起运年龄 */
   private int startAge;

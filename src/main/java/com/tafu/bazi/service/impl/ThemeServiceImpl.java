@@ -1,5 +1,6 @@
 package com.tafu.bazi.service.impl;
 
+import com.tafu.bazi.dto.response.ThemeUnlockResponse;
 import com.tafu.bazi.entity.Task;
 import com.tafu.bazi.entity.ThemeAnalysis;
 import com.tafu.bazi.exception.BusinessException;
@@ -41,10 +42,12 @@ public class ThemeServiceImpl implements ThemeService {
 
   @Override
   @Transactional
-  public String unlockTheme(String userId, String subjectId, String themeName) {
+  public ThemeUnlockResponse unlockTheme(String userId, String subjectId, String themeName) {
     // 1. 检查是否已存在
-    if (themeAnalysisRepository.findBySubjectIdAndTheme(subjectId, themeName).isPresent()) {
-      return "ALREADY_UNLOCKED";
+    java.util.Optional<ThemeAnalysis> existingOpt =
+        themeAnalysisRepository.findBySubjectIdAndTheme(subjectId, themeName);
+    if (existingOpt.isPresent()) {
+      return ThemeUnlockResponse.alreadyUnlocked(existingOpt.get().getContent());
     }
 
     // 2. 扣分
@@ -66,9 +69,13 @@ public class ThemeServiceImpl implements ThemeService {
     taskRepository.save(task);
 
     // 4. 触发异步处理 (TaskProcessor handles this via @Scheduled)
-    log.info("Task created id={}", task.getId());
+    log.info("Task created id={} for theme={}", task.getId(), themeName);
 
-    return task.getId();
+    // 5. 获取剩余积分（在事务外查询以提高性能）
+    int remainingBalance = pointsService.getMyPoints(userId).getBalance();
+
+    // 6. 返回任务ID和剩余积分
+    return ThemeUnlockResponse.newUnlock(task.getId(), remainingBalance);
   }
 
   @Override

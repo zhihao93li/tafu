@@ -1,8 +1,10 @@
 package com.tafu.bazi.dto.response;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 神煞信息 DTO
@@ -21,6 +23,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ShenShaDTO {
   /** 年柱神煞列表（如 ["太岁", "岁德"]） */
   private List<String> year;

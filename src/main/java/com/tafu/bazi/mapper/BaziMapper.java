@@ -5,18 +5,27 @@ import com.tafu.bazi.model.BaziResult.*;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Bazi 数据映射器
+ * Bazi 数据映射器（重构版）
  *
- * <p>将内部 BaziResult 模型映射为 DTO 响应对象
+ * <p>职责：
+ *
+ * <ul>
+ *   <li>将强类型 BaziResult 模型映射为 DTO
+ *   <li>委托 MapToDtoMapper 处理 Map 数据（数据库读取场景）
+ * </ul>
  *
  * @author Zhihao Li
  * @since 2026-01-26
  */
 @Component
+@RequiredArgsConstructor
 public class BaziMapper {
+
+  private final MapToDtoMapper mapToDtoMapper;
 
   /**
    * 映射单柱数据（从 Map 结构）
@@ -99,10 +108,9 @@ public class BaziMapper {
   }
 
   /**
-   * 映射日主分析数据
+   * 映射日主分析数据（重构版）
    *
-   * @param dayMaster DayMaster 模型
-   * @return DayMasterDTO
+   * <p>使用方法重载处理不同输入类型
    */
   public DayMasterDTO mapDayMaster(DayMaster dayMaster) {
     if (dayMaster == null) return null;
@@ -130,12 +138,26 @@ public class BaziMapper {
         .build();
   }
 
-  /**
-   * 映射五行分析数据
-   *
-   * @param fiveElements FiveElementsAnalysis 模型
-   * @return FiveElementsDTO
-   */
+  /** 从 Map 映射日主数据（委托给专用 Mapper） */
+  @SuppressWarnings("unchecked")
+  public DayMasterDTO mapDayMasterFromMap(Map<String, Object> map) {
+    return mapToDtoMapper.mapDayMaster(map);
+  }
+
+  /** 多态入口（兼容旧代码） */
+  @SuppressWarnings("unchecked")
+  public DayMasterDTO mapDayMaster(Object dayMasterObj) {
+    if (dayMasterObj == null) return null;
+    if (dayMasterObj instanceof DayMaster) {
+      return mapDayMaster((DayMaster) dayMasterObj);
+    }
+    if (dayMasterObj instanceof Map) {
+      return mapDayMasterFromMap((Map<String, Object>) dayMasterObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + dayMasterObj.getClass().getName());
+  }
+
+  /** 映射五行分析数据 */
   public FiveElementsDTO mapFiveElements(FiveElementsAnalysis fiveElements) {
     if (fiveElements == null) return null;
 
@@ -149,6 +171,19 @@ public class BaziMapper {
         .elementStates(fiveElements.getElementStates())
         .monthElement(fiveElements.getMonthElement())
         .build();
+  }
+
+  /** 多态入口 */
+  @SuppressWarnings("unchecked")
+  public FiveElementsDTO mapFiveElements(Object fiveElementsObj) {
+    if (fiveElementsObj == null) return null;
+    if (fiveElementsObj instanceof FiveElementsAnalysis) {
+      return mapFiveElements((FiveElementsAnalysis) fiveElementsObj);
+    }
+    if (fiveElementsObj instanceof Map) {
+      return mapToDtoMapper.mapFiveElements((Map<String, Object>) fiveElementsObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + fiveElementsObj.getClass().getName());
   }
 
   /**
@@ -167,12 +202,7 @@ public class BaziMapper {
         .build();
   }
 
-  /**
-   * 映射十神分析数据
-   *
-   * @param tenGods TenGodsAnalysis 模型
-   * @return TenGodsDTO
-   */
+  /** 映射十神分析数据 */
   public TenGodsDTO mapTenGods(TenGodsAnalysis tenGods) {
     if (tenGods == null || tenGods.getGods() == null) return null;
 
@@ -183,12 +213,20 @@ public class BaziMapper {
     return TenGodsDTO.builder().gods(godsDTOMap).build();
   }
 
-  /**
-   * 映射格局信息
-   *
-   * @param pattern PatternInfo 模型
-   * @return PatternDTO
-   */
+  /** 多态入口 */
+  @SuppressWarnings("unchecked")
+  public TenGodsDTO mapTenGods(Object tenGodsObj) {
+    if (tenGodsObj == null) return null;
+    if (tenGodsObj instanceof TenGodsAnalysis) {
+      return mapTenGods((TenGodsAnalysis) tenGodsObj);
+    }
+    if (tenGodsObj instanceof Map) {
+      return mapToDtoMapper.mapTenGods((Map<String, Object>) tenGodsObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + tenGodsObj.getClass().getName());
+  }
+
+  /** 映射格局信息 */
   public PatternDTO mapPattern(PatternInfo pattern) {
     if (pattern == null) return null;
 
@@ -200,6 +238,19 @@ public class BaziMapper {
         .monthStemTenGod(pattern.getMonthStemTenGod())
         .isTransparent(pattern.isTransparent())
         .build();
+  }
+
+  /** 多态入口 */
+  @SuppressWarnings("unchecked")
+  public PatternDTO mapPattern(Object patternObj) {
+    if (patternObj == null) return null;
+    if (patternObj instanceof PatternInfo) {
+      return mapPattern((PatternInfo) patternObj);
+    }
+    if (patternObj instanceof Map) {
+      return mapToDtoMapper.mapPattern((Map<String, Object>) patternObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + patternObj.getClass().getName());
   }
 
   /**
@@ -252,12 +303,7 @@ public class BaziMapper {
         .build();
   }
 
-  /**
-   * 映射大运信息
-   *
-   * @param yunInfo YunInfo 模型
-   * @return YunInfoDTO
-   */
+  /** 映射大运信息 */
   public YunInfoDTO mapYunInfo(YunInfo yunInfo) {
     if (yunInfo == null) return null;
 
@@ -273,12 +319,20 @@ public class BaziMapper {
         .build();
   }
 
-  /**
-   * 映射神煞信息
-   *
-   * @param shenSha ShenShaInfo 模型
-   * @return ShenShaDTO
-   */
+  /** 多态入口 */
+  @SuppressWarnings("unchecked")
+  public YunInfoDTO mapYunInfo(Object yunInfoObj) {
+    if (yunInfoObj == null) return null;
+    if (yunInfoObj instanceof YunInfo) {
+      return mapYunInfo((YunInfo) yunInfoObj);
+    }
+    if (yunInfoObj instanceof Map) {
+      return mapToDtoMapper.mapYunInfo((Map<String, Object>) yunInfoObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + yunInfoObj.getClass().getName());
+  }
+
+  /** 映射神煞信息 */
   public ShenShaDTO mapShenSha(ShenShaInfo shenSha) {
     if (shenSha == null) return null;
 
@@ -288,6 +342,19 @@ public class BaziMapper {
         .day(shenSha.getDay())
         .hour(shenSha.getHour())
         .build();
+  }
+
+  /** 多态入口 */
+  @SuppressWarnings("unchecked")
+  public ShenShaDTO mapShenSha(Object shenShaObj) {
+    if (shenShaObj == null) return null;
+    if (shenShaObj instanceof ShenShaInfo) {
+      return mapShenSha((ShenShaInfo) shenShaObj);
+    }
+    if (shenShaObj instanceof Map) {
+      return mapToDtoMapper.mapShenSha((Map<String, Object>) shenShaObj);
+    }
+    throw new IllegalArgumentException("Unsupported type: " + shenShaObj.getClass().getName());
   }
 
   /**
@@ -311,7 +378,7 @@ public class BaziMapper {
   /**
    * 映射完整的八字响应数据
    *
-   * @param resultMap 从 BaziServiceImpl.calculate() 返回的 Map
+   * @param resultMap 从 BaziServiceImpl.calculate() 返回的 Map 或从数据库读取的 Map
    * @return BaziResponse
    */
   @SuppressWarnings("unchecked")
@@ -326,12 +393,12 @@ public class BaziMapper {
         .fourPillars(mapFourPillars((Map<String, Object>) resultMap.get("fourPillars")))
         .fourPillarsShiShen((Map<String, String>) resultMap.get("fourPillarsShiShen"))
         .fourPillarsXunKong((Map<String, String>) resultMap.get("fourPillarsXunKong"))
-        .dayMaster(mapDayMaster((DayMaster) resultMap.get("dayMaster")))
-        .fiveElements(mapFiveElements((FiveElementsAnalysis) resultMap.get("fiveElements")))
-        .tenGods(mapTenGods((TenGodsAnalysis) resultMap.get("tenGods")))
-        .pattern(mapPattern((PatternInfo) resultMap.get("pattern")))
-        .yun(mapYunInfo((YunInfo) resultMap.get("yun")))
-        .shenSha(mapShenSha((ShenShaInfo) resultMap.get("shenSha")))
+        .dayMaster(mapDayMaster(resultMap.get("dayMaster")))
+        .fiveElements(mapFiveElements(resultMap.get("fiveElements")))
+        .tenGods(mapTenGods(resultMap.get("tenGods")))
+        .pattern(mapPattern(resultMap.get("pattern")))
+        .yun(mapYunInfo(resultMap.get("yun")))
+        .shenSha(mapShenSha(resultMap.get("shenSha")))
         .shengXiao((String) resultMap.get("shengXiao"))
         .taiYuan((String) resultMap.get("taiYuan"))
         .mingGong((String) resultMap.get("mingGong"))

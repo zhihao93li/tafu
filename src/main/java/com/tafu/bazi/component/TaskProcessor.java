@@ -11,6 +11,7 @@ import com.tafu.bazi.repository.TaskRepository;
 import com.tafu.bazi.repository.ThemeAnalysisRepository;
 import com.tafu.bazi.service.SubjectService;
 import com.tafu.bazi.utils.BaziResultOptimizer;
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -46,8 +47,27 @@ public class TaskProcessor {
   private final ChatClient chatClient;
   private final AiPromptsConfig aiPromptsConfig;
   private final ObjectMapper objectMapper;
+  private final com.tafu.bazi.service.PointsService pointsService;
+  private final com.tafu.bazi.repository.ThemePricingRepository themePricingRepository;
+  private final org.springframework.ai.openai.OpenAiChatOptions openAiChatOptions;
 
   private final org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor taskExecutor;
+
+  @PostConstruct
+  public void init() {
+    log.info("===== TaskProcessor initialized =====");
+    log.info("Task executor pool size: {}", taskExecutor.getCorePoolSize());
+    log.info("Scheduler will check for pending tasks every 2 seconds");
+
+    // 检查是否有待处理的任务
+    List<Task> pendingTasks =
+        taskRepository.findByStatusAndType(
+            "pending", "THEME_UNLOCK", org.springframework.data.domain.PageRequest.of(0, 10));
+    log.info("Found {} pending THEME_UNLOCK tasks at startup", pendingTasks.size());
+    if (!pendingTasks.isEmpty()) {
+      pendingTasks.forEach(t -> log.info("  - Task ID: {}, User: {}", t.getId(), t.getUserId()));
+    }
+  }
 
   @Scheduled(fixedDelay = 2000) // 每2秒轮询一次
   @net.javacrumbs.shedlock.spring.annotation.SchedulerLock(
@@ -59,8 +79,17 @@ public class TaskProcessor {
         taskRepository.findByStatusAndType(
             "pending", "THEME_UNLOCK", org.springframework.data.domain.PageRequest.of(0, 50));
 
+    if (!pendingTasks.isEmpty()) {
+      log.info("Found {} pending THEME_UNLOCK tasks", pendingTasks.size());
+    }
+
     List<java.util.concurrent.CompletableFuture<Void>> futures = new java.util.ArrayList<>();
     for (Task task : pendingTasks) {
+      log.info(
+          "Submitting task {} for processing (user: {}, type: {})",
+          task.getId(),
+          task.getUserId(),
+          task.getType());
       futures.add(
           java.util.concurrent.CompletableFuture.runAsync(() -> processTask(task), taskExecutor));
     }
@@ -101,12 +130,34 @@ public class TaskProcessor {
       task.setStatus("failed");
       task.setError(e.getMessage());
       taskRepository.save(task);
+
+      // 退还积分
+      try {
+        Map<String, Object> payload = task.getPayload();
+        String theme = (String) payload.get("theme");
+        int price =
+            themePricingRepository
+                .findByTheme(theme)
+                .map(com.tafu.bazi.entity.ThemePricing::getPrice)
+                .orElse(20);
+
+        pointsService.addPoints(
+            task.getUserId(), price, "refund_unlock_theme", "退还积分: 主题解锁失败 - " + theme);
+        log.info(
+            "Refunded {} points to user {} for failed task {}",
+            price,
+            task.getUserId(),
+            task.getId());
+      } catch (Exception refundError) {
+        log.error("Failed to refund points for task: {}", task.getId(), refundError);
+      }
     }
   }
 
   private void processThemeUnlock(String userId, String subjectId, String theme) {
     // 1. Double check if already exists
     if (themeAnalysisRepository.findBySubjectIdAndTheme(subjectId, theme).isPresent()) {
+      log.info("Theme analysis already exists for subject: {}, theme: {}", subjectId, theme);
       return;
     }
 
@@ -122,13 +173,40 @@ public class TaskProcessor {
     String systemPrompt = template.getSystem();
     String userPrompt = replacePlaceholders(template.getUser(), subject);
 
-    // 3. Call AI
-    String aiResponse =
-        chatClient
-            .prompt(
-                new Prompt(List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt))))
-            .call()
-            .content();
+    // 验证 prompt 不为空
+    if (systemPrompt == null || systemPrompt.trim().isEmpty()) {
+      throw new RuntimeException("System prompt is empty for theme: " + theme);
+    }
+    if (userPrompt == null || userPrompt.trim().isEmpty()) {
+      throw new RuntimeException("User prompt is empty for theme: " + theme);
+    }
+
+    // 3. Call AI with configured options
+    log.info("Calling AI for theme: {}, subject: {}", theme, subjectId);
+    log.debug(
+        "System prompt length: {}, User prompt length: {}",
+        systemPrompt != null ? systemPrompt.length() : 0,
+        userPrompt != null ? userPrompt.length() : 0);
+
+    String aiResponse;
+    try {
+      aiResponse =
+          chatClient
+              .prompt(
+                  new Prompt(
+                      List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
+                      openAiChatOptions))
+              .call()
+              .content();
+      log.info("AI response received, length: {}", aiResponse != null ? aiResponse.length() : 0);
+    } catch (Exception e) {
+      log.error("Failed to call AI API for theme: {}, subject: {}", theme, subjectId, e);
+      // 记录更详细的错误信息
+      if (e.getCause() != null) {
+        log.error("Caused by: {}", e.getCause().getMessage());
+      }
+      throw new RuntimeException("AI 调用失败: " + e.getMessage(), e);
+    }
 
     // 4. Save Result
     ThemeAnalysis analysis = new ThemeAnalysis();
@@ -138,7 +216,7 @@ public class TaskProcessor {
     analysis.setPointsCost(0); // Already deducted
 
     Map<String, Object> contentMap = new HashMap<>();
-    contentMap.put("content", aiResponse);
+    contentMap.put("text", aiResponse); // 直接存储文本内容
     analysis.setContent(contentMap);
 
     themeAnalysisRepository.save(analysis);
@@ -156,11 +234,23 @@ public class TaskProcessor {
     if (result.contains("baziMinimalJson")) {
       try {
         Map<String, Object> baziDataMap = subject.getBaziData();
+        if (baziDataMap == null || baziDataMap.isEmpty()) {
+          log.error("BaziData is null or empty for subject: {}", subject.getId());
+          throw new RuntimeException("八字数据为空，无法生成分析");
+        }
+
+        log.debug("Converting baziData to MinimalBaziData for subject: {}", subject.getId());
         MinimalBaziData minimalData = BaziResultOptimizer.optimize(baziDataMap);
         String json = objectMapper.writeValueAsString(minimalData);
         result = result.replace("{{ baziMinimalJson }}", json).replace("{{baziMinimalJson}}", json);
+        log.debug(
+            "Successfully replaced baziMinimalJson placeholder, JSON length: {}", json.length());
       } catch (JsonProcessingException e) {
-        log.error("Failed to serialize MinimalBaziData", e);
+        log.error("Failed to serialize MinimalBaziData for subject: {}", subject.getId(), e);
+        throw new RuntimeException("八字数据序列化失败: " + e.getMessage(), e);
+      } catch (Exception e) {
+        log.error("Failed to optimize BaziResult for subject: {}", subject.getId(), e);
+        throw new RuntimeException("八字数据处理失败: " + e.getMessage(), e);
       }
     }
     return result;

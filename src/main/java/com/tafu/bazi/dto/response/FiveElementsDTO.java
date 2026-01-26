@@ -2,8 +2,10 @@ package com.tafu.bazi.dto.response;
 
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 五行分析 DTO
@@ -13,6 +15,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FiveElementsDTO {
   /** 五行分布（带权重） */
   private Map<String, Double> distribution;

@@ -1,6 +1,7 @@
 package com.tafu.bazi.controller;
 
 import com.tafu.bazi.dto.response.ApiResponse;
+import com.tafu.bazi.dto.response.ThemeUnlockResponse;
 import com.tafu.bazi.service.ThemeService;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class ThemeController {
   }
 
   @PostMapping("/unlock")
-  public ApiResponse<String> unlock(
+  public ApiResponse<ThemeUnlockResponse> unlock(
       @AuthenticationPrincipal UserDetails userDetails, @RequestBody Map<String, String> request) {
     String subjectId = request.get("subjectId");
     String theme = request.get("theme");

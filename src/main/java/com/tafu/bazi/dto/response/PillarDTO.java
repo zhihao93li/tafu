@@ -1,8 +1,10 @@
 package com.tafu.bazi.dto.response;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 单柱 DTO（年/月/日/时柱）
@@ -12,6 +14,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PillarDTO {
   /** 天干 */
   private HeavenlyStemDTO heavenlyStem;
