@@ -37,6 +37,8 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthFilter;
 
+  private final RateLimitFilter rateLimitFilter;
+
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
@@ -44,9 +46,13 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        // 认证相关
                         "/auth/login/**",
                         "/auth/register",
                         "/auth/send-code",
+                        // 排盘相关 - 允许游客访问
+                        "/paipan/calculate",
+                        // API 文档
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html")
@@ -56,6 +62,10 @@ public class SecurityConfig {
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())
+        .addFilterBefore(
+            rateLimitFilter,
+            org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+                .class)
         .addFilterBefore(
             jwtAuthFilter,
             org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
