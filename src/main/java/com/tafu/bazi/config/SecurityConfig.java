@@ -51,7 +51,9 @@ public class SecurityConfig {
                         "/auth/register",
                         "/auth/send-code",
                         // 排盘相关 - 允许游客访问
-                        "/paipan/calculate",
+                        "/bazi/calculate",
+                        "/bazi/leap-month/**",
+                        "/bazi/coordinates",
                         // API 文档
                         "/v3/api-docs/**",
                         "/swagger-ui/**",

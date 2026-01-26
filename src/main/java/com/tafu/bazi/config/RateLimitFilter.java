@@ -26,9 +26,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>使用 Bucket4j 实现令牌桶算法，防止恶意请求。
  *
- * <p>限流规则：
- * - 游客（未登录）：每分钟最多 20 次请求
- * - 已登录用户：每分钟最多 60 次请求
+ * <p>限流规则： - 游客（未登录）：每分钟最多 20 次请求 - 已登录用户：每分钟最多 60 次请求
  *
  * @author Zhihao Li
  * @since 2026-01-27
@@ -77,9 +75,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
   }
 
-  /**
-   * 获取客户端真实 IP
-   */
+  /** 获取客户端真实 IP */
   private String getClientIp(HttpServletRequest request) {
     String ip = request.getHeader("X-Forwarded-For");
     if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -95,9 +91,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     return ip;
   }
 
-  /**
-   * 获取或创建限流桶
-   */
+  /** 获取或创建限流桶 */
   private Bucket resolveBucket(String ip, boolean isAuthenticated) {
     return ipBuckets.computeIfAbsent(
         ip + "_" + isAuthenticated,
@@ -109,9 +103,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         });
   }
 
-  /**
-   * 白名单路径：不限流
-   */
+  /** 白名单路径：不限流 */
   private boolean isWhitelisted(String path) {
     return path.startsWith("/api/auth/login")
         || path.startsWith("/api/auth/register")
@@ -119,17 +111,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         || path.startsWith("/api/swagger-ui");
   }
 
-  /**
-   * 返回限流响应
-   */
+  /** 返回限流响应 */
   private void sendRateLimitResponse(HttpServletResponse response) throws IOException {
     response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setCharacterEncoding("UTF-8");
 
     ApiResponse<Void> apiResponse =
-        ApiResponse.error(
-            HttpStatus.TOO_MANY_REQUESTS.value(), "请求过于频繁，请稍后再试");
+        ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "请求过于频繁，请稍后再试");
 
     response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
   }
