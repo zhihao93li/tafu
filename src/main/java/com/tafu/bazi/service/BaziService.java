@@ -8,8 +8,7 @@ import java.util.Map;
  *
  * <p>描述: 八字排盘核心计算服务接口。
  *
- * <p>包含内容: 1. 计算八字排盘数据 (calculate) 2. 获取年份闰月信息 (getLeapMonth) 3. 获取地点经纬度
- * (getCoordinates)
+ * <p>包含内容: 1. 计算八字排盘数据 (calculate) 2. 获取年份闰月信息 (getLeapMonth) 3. 获取地点经纬度 (getCoordinates)
  *
  * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *
