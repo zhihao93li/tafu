@@ -48,6 +48,39 @@ public class GlobalExceptionHandler {
     return ApiResponse.error(HttpStatus.NOT_FOUND.value(), "接口不存在");
   }
 
+  /**
+   * 处理客户端断开连接异常
+   *
+   * <p>常见场景：用户刷新页面、取消请求、网络超时等 这不是服务器错误，只需记录警告日志即可
+   */
+  @ExceptionHandler({
+    org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
+    org.apache.catalina.connector.ClientAbortException.class,
+    java.io.IOException.class
+  })
+  public void handleClientAbortException(Exception e, HttpServletRequest request) {
+    // 检查是否是 Broken pipe 或客户端断开连接
+    String message = e.getMessage();
+    if (message != null
+        && (message.contains("Broken pipe")
+            || message.contains("ClientAbortException")
+            || message.contains("Connection reset by peer")
+            || e
+                instanceof
+                org.springframework.web.context.request.async.AsyncRequestNotUsableException)) {
+      // 只记录 INFO 级别的日志，不需要堆栈信息
+      log.info(
+          "Client disconnected during request: {} {} - {}",
+          request.getMethod(),
+          request.getRequestURI(),
+          e.getClass().getSimpleName());
+      return; // 不返回任何响应，因为客户端已经断开
+    }
+
+    // 如果是其他 IOException，继续抛出让下面的通用异常处理器处理
+    throw new RuntimeException(e);
+  }
+
   /** 处理系统未知异常 */
   @ExceptionHandler(Exception.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

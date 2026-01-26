@@ -23,7 +23,7 @@ spring:
     baseline-on-migrate: true
 
   # AI Configuration (Spring AI)
-  # Note: Model configuration is now managed in ai-prompts.yaml
+  # Note: Model configuration is managed in ai-prompts.yaml (higher priority)
   ai:
     openai:
       api-key: ${AIHUBMIX_API_KEY}

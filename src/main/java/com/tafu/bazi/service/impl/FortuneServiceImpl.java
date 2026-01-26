@@ -65,7 +65,7 @@ public class FortuneServiceImpl implements FortuneService {
     // 实际开发中推荐使用 BeanWrapper 或 MapAccessor 替换
     String userPrompt = replacePlaceholders(userPromptTemplate, subject);
 
-    // 2. 调用 AI with configured options
+    // 2. 调用 AI with options from ai-prompts.yaml
     log.info("Calling AI for initial analysis, subject: {}", subjectId);
 
     String aiResponse;
@@ -112,7 +112,7 @@ public class FortuneServiceImpl implements FortuneService {
     String userPromptTemplate = aiPromptsConfig.getPrompts().getInitial().getUser();
     String userPrompt = replacePlaceholders(userPromptTemplate, subject);
 
-    // 2. 调用 AI 流式接口 with configured options
+    // 2. 调用 AI 流式接口 with options from ai-prompts.yaml
     log.info("Calling AI stream for initial analysis, subject: {}", subjectId);
 
     AtomicReference<StringBuilder> fullContent = new AtomicReference<>(new StringBuilder());

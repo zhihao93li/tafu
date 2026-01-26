@@ -181,7 +181,7 @@ public class TaskProcessor {
       throw new RuntimeException("User prompt is empty for theme: " + theme);
     }
 
-    // 3. Call AI with configured options
+    // 3. Call AI with options from ai-prompts.yaml
     log.info("Calling AI for theme: {}, subject: {}", theme, subjectId);
     log.debug(
         "System prompt length: {}, User prompt length: {}",
