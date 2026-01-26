@@ -8,6 +8,9 @@ import com.tafu.bazi.repository.TaskRepository;
 import com.tafu.bazi.repository.ThemeAnalysisRepository;
 import com.tafu.bazi.service.PointsService;
 import com.tafu.bazi.service.ThemeService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,7 @@ public class ThemeServiceImpl implements ThemeService {
   private final PointsService pointsService;
   private final TaskRepository taskRepository;
   private final com.tafu.bazi.repository.ThemePricingRepository themePricingRepository;
+  private final com.tafu.bazi.repository.SubjectRepository subjectRepository;
 
   @Override
   @Transactional
@@ -73,5 +77,81 @@ public class ThemeServiceImpl implements ThemeService {
         .findBySubjectIdAndTheme(subjectId, themeName)
         .map(ThemeAnalysis::getContent)
         .orElseThrow(() -> new BusinessException(StandardErrorCode.FORBIDDEN.getCode(), "主题未解锁"));
+  }
+
+  @Override
+  public List<Map<String, Object>> getThemePricing() {
+    return themePricingRepository.findByIsActiveTrueOrderBySortOrderAsc().stream()
+        .map(
+            pricing -> {
+              Map<String, Object> map = new HashMap<>();
+              map.put("theme", pricing.getTheme());
+              map.put("name", pricing.getName());
+              map.put("description", pricing.getDescription());
+              map.put("price", pricing.getPrice());
+              map.put("originalPrice", pricing.getOriginalPrice());
+              return map;
+            })
+        .toList();
+  }
+
+  @Override
+  public List<Map<String, Object>> getThemeStatus(String userId, String subjectId) {
+    // 验证 subject 归属
+    subjectRepository
+        .findByIdAndUserId(subjectId, userId)
+        .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    // 获取所有主题价格配置
+    List<com.tafu.bazi.entity.ThemePricing> allThemes =
+        themePricingRepository.findByIsActiveTrueOrderBySortOrderAsc();
+
+    // 获取该 subject 已解锁的主题
+    List<ThemeAnalysis> unlockedAnalyses =
+        themeAnalysisRepository.findAll().stream()
+            .filter(a -> a.getSubjectId().equals(subjectId))
+            .toList();
+
+    Map<String, Boolean> unlockedMap = new HashMap<>();
+    for (ThemeAnalysis analysis : unlockedAnalyses) {
+      unlockedMap.put(analysis.getTheme(), true);
+    }
+
+    // 组合返回
+    List<Map<String, Object>> result = new ArrayList<>();
+    for (com.tafu.bazi.entity.ThemePricing pricing : allThemes) {
+      Map<String, Object> map = new HashMap<>();
+      map.put("theme", pricing.getTheme());
+      map.put("isUnlocked", unlockedMap.getOrDefault(pricing.getTheme(), false));
+      result.add(map);
+    }
+
+    return result;
+  }
+
+  @Override
+  public List<Map<String, Object>> getThemesBatch(
+      String userId, String subjectId, List<String> themes) {
+    // 验证 subject 归属
+    subjectRepository
+        .findByIdAndUserId(subjectId, userId)
+        .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
+
+    List<Map<String, Object>> result = new ArrayList<>();
+
+    for (String theme : themes) {
+      themeAnalysisRepository
+          .findBySubjectIdAndTheme(subjectId, theme)
+          .ifPresent(
+              analysis -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("theme", analysis.getTheme());
+                map.put("isUnlocked", true);
+                map.put("content", analysis.getContent());
+                result.add(map);
+              });
+    }
+
+    return result;
   }
 }

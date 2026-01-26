@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.*;
  *
  * <p>描述: 支付 API。
  *
- * <p>包含内容: 1. 积分套餐列表 2. 创建订单 3. Stripe Checkout 会话创建 4. Stripe Webhook 回调 5. 码支付订单创建 6.
- * 码支付异步通知 7. 码支付同步跳转 8. 订单状态查询 9. Mock 支付回调
+ * <p>包含内容: 1. 积分套餐列表 2. 创建订单 3. Stripe Checkout 会话创建 4. Stripe Webhook 回调 5. 码支付订单创建 6. 码支付异步通知 7.
+ * 码支付同步跳转 8. 订单状态查询 9. Mock 支付回调
  *
  * <p>维护说明: 当这个文件/文件夹发生改动时，同步改动说明文件以及上一层文件夹对本文件/文件夹的描述。
  *

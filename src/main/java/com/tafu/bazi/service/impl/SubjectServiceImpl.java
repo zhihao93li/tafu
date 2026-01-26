@@ -109,7 +109,16 @@ public class SubjectServiceImpl implements SubjectService {
 
   private Map<String, Object> calculateBazi(SubjectRequest.Create request) {
     BaziCalculateRequest calcRequest = new BaziCalculateRequest();
-    BeanUtils.copyProperties(request, calcRequest);
+    // 手动映射字段（字段名不匹配，不能使用 BeanUtils.copyProperties）
+    calcRequest.setYear(request.getBirthYear());
+    calcRequest.setMonth(request.getBirthMonth());
+    calcRequest.setDay(request.getBirthDay());
+    calcRequest.setHour(request.getBirthHour());
+    calcRequest.setMinute(request.getBirthMinute());
+    calcRequest.setCalendarType(request.getCalendarType());
+    calcRequest.setGender(request.getGender());
+    calcRequest.setLeapMonth(request.isLeapMonth());
+    calcRequest.setLocation(request.getLocation());
     return baziService.calculate(calcRequest);
   }
 
@@ -129,7 +138,7 @@ public class SubjectServiceImpl implements SubjectService {
         .relationship(subject.getRelationship())
         .note(subject.getNote())
         .createdAt(subject.getCreatedAt())
-        .baziBrief(subject.getBaziData()) // Return full data for now, frontend can pick
+        .baziData(subject.getBaziData()) // 返回完整的八字数据
         .build();
   }
 }

@@ -31,6 +31,6 @@ public class SubjectResponse {
   private String note;
   private LocalDateTime createdAt;
 
-  // 简略的排盘信息，用于列表展示
-  private Map<String, Object> baziBrief;
+  // 完整的排盘数据（与前端 baziData 字段名保持一致）
+  private Map<String, Object> baziData;
 }

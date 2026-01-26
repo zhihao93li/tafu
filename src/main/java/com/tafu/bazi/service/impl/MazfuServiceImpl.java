@@ -54,10 +54,7 @@ public class MazfuServiceImpl implements MazfuService {
   @Override
   public MazfuCreatePaymentResult createPayment(MazfuCreatePaymentRequest request) {
     if (!mazfuConfig.isConfigured()) {
-      return MazfuCreatePaymentResult.builder()
-          .success(false)
-          .message("码支付未配置，请检查环境变量")
-          .build();
+      return MazfuCreatePaymentResult.builder().success(false).message("码支付未配置，请检查环境变量").build();
     }
 
     // 金额从分转换为元，保留两位小数
@@ -205,8 +202,7 @@ public class MazfuServiceImpl implements MazfuService {
       orderRepository.save(order);
 
       // 充值积分
-      pointsService.addPoints(
-          order.getUserId(), order.getPoints(), "recharge", "充值订单: " + orderNo);
+      pointsService.addPoints(order.getUserId(), order.getPoints(), "recharge", "充值订单: " + orderNo);
 
       log.info("[Mazfu] Order {} payment completed successfully", orderNo);
       return "success";
@@ -220,8 +216,8 @@ public class MazfuServiceImpl implements MazfuService {
   /**
    * 生成 MD5 签名
    *
-   * <p>算法： 1. 按 ASCII 码升序排序所有参数 2. 排除 sign、sign_type 和空值参数 3. 拼接为 URL 键值对格式（a=b&c=d&e=f） 4.
-   * 追加商户 KEY 并计算小写 MD5
+   * <p>算法： 1. 按 ASCII 码升序排序所有参数 2. 排除 sign、sign_type 和空值参数 3. 拼接为 URL 键值对格式（a=b&c=d&e=f） 4. 追加商户
+   * KEY 并计算小写 MD5
    */
   private String generateSign(Map<String, String> params, String key) {
     String queryString =

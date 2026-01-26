@@ -75,39 +75,33 @@ public class BaziServiceImpl implements BaziService {
     String dayMasterGan = eightChar.getDayGan();
 
     // 2. 构造四柱 (Four Pillars)
-    FourPillars fourPillars =
-        FourPillars.builder()
-            .year(
-                buildPillar(
-                    eightChar.getYearGan(),
-                    eightChar.getYearZhi(),
-                    eightChar.getYearNaYin(),
-                    dayMasterGan))
-            .month(
-                buildPillar(
-                    eightChar.getMonthGan(),
-                    eightChar.getMonthZhi(),
-                    eightChar.getMonthNaYin(),
-                    dayMasterGan))
-            .day(
-                buildPillar(
-                    eightChar.getDayGan(),
-                    eightChar.getDayZhi(),
-                    eightChar.getDayNaYin(),
-                    dayMasterGan))
-            .hour(
-                buildPillar(
-                    eightChar.getTimeGan(),
-                    eightChar.getTimeZhi(),
-                    eightChar.getTimeNaYin(),
-                    dayMasterGan))
-            .build();
+    Map<String, Object> fourPillars = new LinkedHashMap<>();
+    fourPillars.put("year", buildPillar(
+        eightChar.getYearGan(),
+        eightChar.getYearZhi(),
+        eightChar.getYearNaYin(),
+        dayMasterGan));
+    fourPillars.put("month", buildPillar(
+        eightChar.getMonthGan(),
+        eightChar.getMonthZhi(),
+        eightChar.getMonthNaYin(),
+        dayMasterGan));
+    fourPillars.put("day", buildPillar(
+        eightChar.getDayGan(),
+        eightChar.getDayZhi(),
+        eightChar.getDayNaYin(),
+        dayMasterGan));
+    fourPillars.put("hour", buildPillar(
+        eightChar.getTimeGan(),
+        eightChar.getTimeZhi(),
+        eightChar.getTimeNaYin(),
+        dayMasterGan));
 
-    // 3. 核心分析
-    DayMaster dayMaster = calculateDayMaster(fourPillars);
-    FiveElementsAnalysis fiveElements = calculateFiveElements(fourPillars, dayMaster);
-    TenGodsAnalysis tenGods = calculateTenGods(fourPillars, dayMaster.getGan());
-    PatternInfo pattern = calculatePattern(fourPillars, dayMaster, fiveElements);
+    // 3. 核心分析（使用简单的Map结构进行计算）
+    DayMaster dayMaster = calculateDayMasterFromMap(fourPillars, dayMasterGan);
+    FiveElementsAnalysis fiveElements = calculateFiveElementsFromMap(fourPillars, dayMaster);
+    TenGodsAnalysis tenGods = calculateTenGodsFromMap(fourPillars, dayMaster.getGan());
+    PatternInfo pattern = calculatePatternFromMap(fourPillars, dayMaster, fiveElements);
     List<String> dayMasterCharacteristics = getDayMasterCharacteristics(dayMaster.getGan());
 
     // New Logic: Yun (DaYun)
@@ -142,7 +136,9 @@ public class BaziServiceImpl implements BaziService {
             "minute",
             solar.getMinute()));
 
-    result.put("pillars", fourPillars);
+    result.put("fourPillars", fourPillars);
+    result.put("fourPillarsShiShen", convertTenGodsToShiShen(tenGods));
+    result.put("fourPillarsXunKong", Map.of("dayXunKong", eightChar.getDayXunKong()));
     result.put("dayMaster", dayMaster);
     result.put("fiveElements", fiveElements);
     result.put("tenGods", tenGods);
@@ -162,30 +158,81 @@ public class BaziServiceImpl implements BaziService {
     return result;
   }
 
-  private BaziResult.Pillar buildPillar(String gan, String zhi, String nayin, String dayMasterGan) {
+  private Map<String, Object> buildPillar(String gan, String zhi, String nayin, String dayMasterGan) {
     StemInfo ganInfo = BaziDef.STEMS_INFO.get(gan);
     StemInfo dayMasterInfo = BaziDef.STEMS_INFO.get(dayMasterGan);
     String tenGod =
         (ganInfo != null && dayMasterInfo != null) ? getTenGod(dayMasterInfo, ganInfo) : null;
 
-    return BaziResult.Pillar.builder()
-        .gan(gan)
-        .zhi(zhi)
-        .nayin(nayin)
-        .hiddenStems(LunarUtils.getHiddenStems(zhi))
-        .tenGod(tenGod)
-        .build();
+    // Get branch element
+    FiveElement branchElement = BaziDef.MONTH_BRANCH_ELEMENT.get(zhi);
+    
+    // Build heavenlyStem object
+    Map<String, Object> heavenlyStem = new HashMap<>();
+    heavenlyStem.put("chinese", gan);
+    if (ganInfo != null) {
+      heavenlyStem.put("element", ganInfo.getElement().getCode());
+      heavenlyStem.put("yinYang", ganInfo.getYinYang().name().toLowerCase());
+    }
+    
+    // Build earthlyBranch object
+    Map<String, Object> earthlyBranch = new HashMap<>();
+    earthlyBranch.put("chinese", zhi);
+    if (branchElement != null) {
+      earthlyBranch.put("element", branchElement.getCode());
+    }
+    
+    // Build complete pillar
+    Map<String, Object> pillar = new HashMap<>();
+    pillar.put("heavenlyStem", heavenlyStem);
+    pillar.put("earthlyBranch", earthlyBranch);
+    pillar.put("naYin", nayin);
+    pillar.put("hiddenStems", LunarUtils.getHiddenStems(zhi));
+    pillar.put("tenGod", tenGod);
+    
+    return pillar;
   }
 
   // ==========================================
   // Core Logic Implementation (Ported from TS)
   // ==========================================
 
-  private DayMaster calculateDayMaster(FourPillars pillars) {
-    String dayGan = pillars.getDay().getGan();
-    FiveElement dayElement = BaziDef.STEMS_INFO.get(dayGan).getElement();
+  /**
+   * 从 Map 结构提取天干
+   */
+  private String extractGanFromPillar(Map<String, Object> pillar) {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> heavenlyStem = (Map<String, Object>) pillar.get("heavenlyStem");
+    return (String) heavenlyStem.get("chinese");
+  }
 
-    String monthZhi = pillars.getMonth().getZhi();
+  /**
+   * 从 Map 结构提取地支
+   */
+  private String extractZhiFromPillar(Map<String, Object> pillar) {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> earthlyBranch = (Map<String, Object>) pillar.get("earthlyBranch");
+    return (String) earthlyBranch.get("chinese");
+  }
+
+  /**
+   * 从 Map 结构提取藏干
+   */
+  @SuppressWarnings("unchecked")
+  private List<String> extractHiddenStemsFromPillar(Map<String, Object> pillar) {
+    return (List<String>) pillar.get("hiddenStems");
+  }
+
+  private DayMaster calculateDayMasterFromMap(Map<String, Object> fourPillars, String dayMasterGan) {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> dayPillar = (Map<String, Object>) fourPillars.get("day");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> monthPillar = (Map<String, Object>) fourPillars.get("month");
+    
+    String dayGan = extractGanFromPillar(dayPillar);
+    String monthZhi = extractZhiFromPillar(monthPillar);
+    
+    FiveElement dayElement = BaziDef.STEMS_INFO.get(dayGan).getElement();
     FiveElement monthElement = BaziDef.MONTH_BRANCH_ELEMENT.get(monthZhi);
 
     // 1. 得令 (Month Season Support)
@@ -212,14 +259,19 @@ public class BaziServiceImpl implements BaziService {
     // 2. 得地 (Root in Hidden Stems)
     double deDi = 0;
     List<String> roots = new ArrayList<>();
-    List<BaziResult.Pillar> allPillars =
-        List.of(pillars.getYear(), pillars.getMonth(), pillars.getDay(), pillars.getHour());
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> allPillars = List.of(
+        (Map<String, Object>) fourPillars.get("year"),
+        (Map<String, Object>) fourPillars.get("month"),
+        (Map<String, Object>) fourPillars.get("day"),
+        (Map<String, Object>) fourPillars.get("hour")
+    );
     String[] pillarNames = {"年支", "月支", "日支", "时支"};
 
     for (int i = 0; i < allPillars.size(); i++) {
-      BaziResult.Pillar p = allPillars.get(i);
-      String zhi = p.getZhi();
-      List<String> hiddenStems = p.getHiddenStems();
+      Map<String, Object> p = allPillars.get(i);
+      String zhi = extractZhiFromPillar(p);
+      List<String> hiddenStems = extractHiddenStemsFromPillar(p);
       List<Double> weights = BaziDef.HIDDEN_STEM_WEIGHTS.getOrDefault(zhi, Collections.emptyList());
 
       for (int j = 0; j < hiddenStems.size(); j++) {
@@ -243,12 +295,16 @@ public class BaziServiceImpl implements BaziService {
     // 3. 天干帮扶 (Heavenly Stems Help)
     double tianGanHelp = 0;
     List<String> helpers = new ArrayList<>();
-    List<BaziResult.Pillar> stemPillars =
-        List.of(pillars.getYear(), pillars.getMonth(), pillars.getHour());
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> stemPillars = List.of(
+        (Map<String, Object>) fourPillars.get("year"),
+        (Map<String, Object>) fourPillars.get("month"),
+        (Map<String, Object>) fourPillars.get("hour")
+    );
     String[] stemNames = {"年干", "月干", "时干"};
 
     for (int i = 0; i < stemPillars.size(); i++) {
-      String stemChar = stemPillars.get(i).getGan();
+      String stemChar = extractGanFromPillar(stemPillars.get(i));
       StemInfo stemInfo = BaziDef.STEMS_INFO.get(stemChar);
       if (stemInfo == null) continue;
 
@@ -284,6 +340,100 @@ public class BaziServiceImpl implements BaziService {
                 .tianGanHelpDesc(helpers.isEmpty() ? "无帮扶" : String.join("、", helpers))
                 .totalScore(totalScore)
                 .build())
+        .build();
+  }
+
+  private FiveElementsAnalysis calculateFiveElementsFromMap(Map<String, Object> fourPillars, DayMaster dayMaster) {
+    Map<String, Double> distribution = new HashMap<>();
+    Map<String, Integer> counts = new HashMap<>();
+
+    // Initialize
+    for (FiveElement e : FiveElement.values()) {
+      distribution.put(e.getCode(), 0.0);
+      counts.put(e.getCode(), 0);
+    }
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> monthPillar = (Map<String, Object>) fourPillars.get("month");
+    String monthZhi = extractZhiFromPillar(monthPillar);
+    FiveElement monthElement = BaziDef.MONTH_BRANCH_ELEMENT.get(monthZhi);
+    Map<String, String> elementStates = getElementStates(monthElement);
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> allPillars = List.of(
+        (Map<String, Object>) fourPillars.get("year"),
+        (Map<String, Object>) fourPillars.get("month"),
+        (Map<String, Object>) fourPillars.get("day"),
+        (Map<String, Object>) fourPillars.get("hour")
+    );
+
+    // Stems
+    for (Map<String, Object> p : allPillars) {
+      String gan = extractGanFromPillar(p);
+      StemInfo info = BaziDef.STEMS_INFO.get(gan);
+      if (info != null) {
+        FiveElement e = info.getElement();
+        String state = elementStates.getOrDefault(e.getCode(), "si");
+        double stateWeight = BaziDef.STATE_WEIGHTS.getOrDefault(state, 0.5);
+        distribution.merge(
+            e.getCode(), 1.0 * stateWeight, Double::sum); // Base stem weight 1.0 * state
+        counts.merge(e.getCode(), 1, Integer::sum);
+      }
+    }
+
+    // Hidden Stems
+    for (Map<String, Object> p : allPillars) {
+      String zhi = extractZhiFromPillar(p);
+      List<String> hidden = extractHiddenStemsFromPillar(p);
+      List<Double> weights =
+          BaziDef.HIDDEN_STEM_WEIGHTS.getOrDefault(zhi, Collections.emptyList());
+
+      for (int i = 0; i < hidden.size(); i++) {
+        String stem = hidden.get(i);
+        StemInfo info = BaziDef.STEMS_INFO.get(stem);
+        if (info == null) continue;
+
+        double weight = (i < weights.size()) ? weights.get(i) : 0.2;
+        String state = elementStates.getOrDefault(info.getElement().getCode(), "si");
+        double stateWeight = BaziDef.STATE_WEIGHTS.getOrDefault(state, 0.5);
+
+        distribution.merge(info.getElement().getCode(), weight * stateWeight, Double::sum);
+
+        // Only count Ben Qi (first one)
+        if (i == 0) {
+          counts.merge(info.getElement().getCode(), 1, Integer::sum);
+        }
+      }
+    }
+
+    // Find Strongest/Weakest
+    String strongest = "wood";
+    String weakest = "wood";
+    double maxVal = -1;
+    double minVal = 9999;
+
+    for (Map.Entry<String, Double> entry : distribution.entrySet()) {
+      if (entry.getValue() > maxVal) {
+        maxVal = entry.getValue();
+        strongest = entry.getKey();
+      }
+      if (entry.getValue() < minVal) {
+        minVal = entry.getValue();
+        weakest = entry.getKey();
+      }
+    }
+
+    Map<String, Object> favorableMap = calculateFavorableElements(dayMaster, distribution);
+
+    return FiveElementsAnalysis.builder()
+        .distribution(distribution)
+        .counts(counts)
+        .strongest(strongest)
+        .weakest(weakest)
+        .monthElement(monthElement.getCode())
+        .elementStates(elementStates)
+        .favorable((List<String>) favorableMap.get("favorable"))
+        .unfavorable((List<String>) favorableMap.get("unfavorable"))
         .build();
   }
 
@@ -481,6 +631,43 @@ public class BaziServiceImpl implements BaziService {
     return Map.of("favorable", favorable, "unfavorable", unfavorable);
   }
 
+  private BaziResult.TenGodsAnalysis calculateTenGodsFromMap(Map<String, Object> fourPillars, String dayStemName) {
+    StemInfo dayStemInfo = BaziDef.STEMS_INFO.get(dayStemName);
+    Map<String, BaziResult.TenGodsAnalysis.TenGodInfo> godsMap = new HashMap<>();
+
+    @SuppressWarnings("unchecked")
+    List<Map.Entry<String, String>> positions = List.of(
+        Map.entry(extractGanFromPillar((Map<String, Object>) fourPillars.get("year")), "年干"),
+        Map.entry(extractGanFromPillar((Map<String, Object>) fourPillars.get("month")), "月干"),
+        Map.entry(extractGanFromPillar((Map<String, Object>) fourPillars.get("hour")), "时干")
+    );
+
+    for (Map.Entry<String, String> entry : positions) {
+      String stemName = entry.getKey();
+      String position = entry.getValue();
+      StemInfo stemInfo = BaziDef.STEMS_INFO.get(stemName);
+
+      if (stemInfo != null) {
+        String tenGod = getTenGod(dayStemInfo, stemInfo);
+        if (tenGod != null) {
+          godsMap.putIfAbsent(
+              tenGod,
+              BaziResult.TenGodsAnalysis.TenGodInfo.builder()
+                  .name(tenGod)
+                  .count(0)
+                  .positions(new ArrayList<>())
+                  .build());
+
+          BaziResult.TenGodsAnalysis.TenGodInfo info = godsMap.get(tenGod);
+          info.setCount(info.getCount() + 1);
+          info.getPositions().add(position);
+        }
+      }
+    }
+
+    return BaziResult.TenGodsAnalysis.builder().gods(godsMap).build();
+  }
+
   private BaziResult.TenGodsAnalysis calculateTenGods(FourPillars fourPillars, String dayStemName) {
     StemInfo dayStemInfo = BaziDef.STEMS_INFO.get(dayStemName);
     Map<String, BaziResult.TenGodsAnalysis.TenGodInfo> godsMap = new HashMap<>();
@@ -531,6 +718,168 @@ public class BaziServiceImpl implements BaziService {
             "壬", List.of("聪明灵活", "善于变通", "富有智慧", "适应力强"),
             "癸", List.of("温柔体贴", "富有想象力", "善于思考", "内敛含蓄"));
     return characteristics.getOrDefault(dayStemName, List.of("性格特征待分析"));
+  }
+
+  private BaziResult.PatternInfo calculatePatternFromMap(
+      Map<String, Object> fourPillars, DayMaster dayMaster, FiveElementsAnalysis fiveElements) {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> dayPillar = (Map<String, Object>) fourPillars.get("day");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> monthPillar = (Map<String, Object>) fourPillars.get("month");
+    
+    String dayStemName = extractGanFromPillar(dayPillar);
+    StemInfo dayStemInfo = BaziDef.STEMS_INFO.get(dayStemName);
+    FiveElement dayElement = dayStemInfo.getElement();
+
+    String monthBranch = extractZhiFromPillar(monthPillar);
+    List<String> monthHiddenStems = extractHiddenStemsFromPillar(monthPillar);
+    
+    @SuppressWarnings("unchecked")
+    List<String> tianGan = List.of(
+        extractGanFromPillar((Map<String, Object>) fourPillars.get("year")),
+        extractGanFromPillar((Map<String, Object>) fourPillars.get("month")),
+        extractGanFromPillar((Map<String, Object>) fourPillars.get("hour"))
+    );
+
+    // Lu and Ren maps
+    Map<String, String> luMap =
+        Map.of(
+            "甲", "寅", "乙", "卯", "丙", "巳", "丁", "午", "戊", "巳", "己", "午", "庚", "申", "辛", "酉", "壬",
+            "亥", "癸", "子");
+    Map<String, String> renMap =
+        Map.of(
+            "甲", "卯", "乙", "寅", "丙", "午", "丁", "巳", "戊", "午", "己", "巳", "庚", "酉", "辛", "申", "壬",
+            "子", "癸", "亥");
+
+    // 1. 建禄格
+    if (monthBranch.equals(luMap.get(dayStemName))) {
+      return BaziResult.PatternInfo.builder()
+          .name("建禄格")
+          .category("normal")
+          .description("月支为日主之禄，主身旺有根，宜见财官食伤")
+          .monthStem(monthHiddenStems.isEmpty() ? null : monthHiddenStems.get(0))
+          .isTransparent(false)
+          .build();
+    }
+
+    // 2. 羊刃格
+    if (monthBranch.equals(renMap.get(dayStemName))) {
+      return BaziResult.PatternInfo.builder()
+          .name("羊刃格")
+          .category("normal")
+          .description("月支为日主之刃，主身强刚烈，宜见官杀制刃")
+          .monthStem(monthHiddenStems.isEmpty() ? null : monthHiddenStems.get(0))
+          .isTransparent(false)
+          .build();
+    }
+
+    // 3. 特殊格局
+    double score = dayMaster.getAnalysis() != null ? dayMaster.getAnalysis().getTotalScore() : 50.0;
+
+    // 从格 (Score < 20)
+    if (score < 20) {
+      Map<String, Double> dist = fiveElements.getDistribution();
+      // Find strongest non-day-element
+      String strongestElStr = dayElement.getCode();
+      double strongestVal = 0;
+
+      for (FiveElement el : FiveElement.values()) {
+        if (el != dayElement && dist.getOrDefault(el.getCode(), 0.0) > strongestVal) {
+          strongestVal = dist.get(el.getCode());
+          strongestElStr = el.getCode();
+        }
+      }
+
+      FiveElement strongestEl = FiveElement.fromCode(strongestElStr);
+      if (strongestEl != null) {
+        if (restrictsElement(dayElement, strongestEl)) {
+          return BaziResult.PatternInfo.builder()
+              .name("从财格")
+              .category("special")
+              .description("日主极弱而财星极旺，弃命从财，宜顺从财势")
+              .build();
+        }
+        if (restrictsElement(strongestEl, dayElement)) {
+          return BaziResult.PatternInfo.builder()
+              .name("从官格")
+              .category("special")
+              .description("日主极弱而官杀极旺，弃命从官，宜顺从官势")
+              .build();
+        }
+        if (generatesElement(dayElement, strongestEl)) {
+          return BaziResult.PatternInfo.builder()
+              .name("从儿格")
+              .category("special")
+              .description("日主极弱而食伤极旺，弃命从儿，宜顺从食伤之势")
+              .build();
+        }
+      }
+    }
+
+    // 专旺格 (Score > 75)
+    if (score > 75) {
+      Map<FiveElement, String> nameMap =
+          Map.of(
+              FiveElement.WOOD, "曲直格",
+              FiveElement.FIRE, "炎上格",
+              FiveElement.EARTH, "稼穑格",
+              FiveElement.METAL, "从革格",
+              FiveElement.WATER, "润下格");
+      Map<FiveElement, String> descMap =
+          Map.of(
+              FiveElement.WOOD, "木气专旺成局，主仁慈正直，宜水木运",
+              FiveElement.FIRE, "火气炎上成局，主热情礼仪，宜木火运",
+              FiveElement.EARTH, "土气稼穑成局，主忠厚信实，宜火土运",
+              FiveElement.METAL, "金气从革成局，主刚毅果决，宜土金运",
+              FiveElement.WATER, "水气润下成局，主聪慧灵活，宜金水运");
+
+      return BaziResult.PatternInfo.builder()
+          .name(nameMap.get(dayElement))
+          .category("special")
+          .description(descMap.get(dayElement))
+          .build();
+    }
+
+    // 4. 正格
+    if (!monthHiddenStems.isEmpty()) {
+      for (String hiddenStem : monthHiddenStems) {
+        StemInfo hiddenStemInfo = BaziDef.STEMS_INFO.get(hiddenStem);
+        String tenGod = getTenGod(dayStemInfo, hiddenStemInfo);
+
+        if ("比肩".equals(tenGod) || "劫财".equals(tenGod)) continue;
+
+        boolean isTransparent = tianGan.contains(hiddenStem);
+
+        Map<String, Map.Entry<String, String>> patternMap =
+            Map.of(
+                "正官", Map.entry("正官格", "月令透正官，主贵气端正，宜见财印相生"),
+                "七杀", Map.entry("七杀格", "月令透七杀，主威严果决，宜见食伤制杀或印化杀"),
+                "正财", Map.entry("正财格", "月令透正财，主务实勤俭，宜见官杀护财"),
+                "偏财", Map.entry("偏财格", "月令透偏财，主豪爽大方，宜见官杀护财"),
+                "正印", Map.entry("正印格", "月令透正印，主聪慧仁厚，宜见官杀生印"),
+                "偏印", Map.entry("偏印格", "月令透偏印，主机敏多思，宜见财星制印"),
+                "食神", Map.entry("食神格", "月令透食神，主温和福厚，宜见财星泄秀"),
+                "伤官", Map.entry("伤官格", "月令透伤官，主聪明傲气，宜见财星或印星"));
+
+        if (tenGod != null && patternMap.containsKey(tenGod)) {
+          Map.Entry<String, String> info = patternMap.get(tenGod);
+          return BaziResult.PatternInfo.builder()
+              .name(info.getKey())
+              .category("normal")
+              .description(info.getValue())
+              .monthStem(hiddenStem)
+              .monthStemTenGod(tenGod)
+              .isTransparent(isTransparent)
+              .build();
+        }
+      }
+    }
+
+    return BaziResult.PatternInfo.builder()
+        .name("杂格")
+        .category("normal")
+        .description("月令无明显成格条件，需综合分析八字整体格局")
+        .build();
   }
 
   private BaziResult.PatternInfo calculatePattern(
@@ -749,6 +1098,34 @@ public class BaziServiceImpl implements BaziService {
         .forward(true) // Default to true
         .daYunList(daYunList)
         .build();
+  }
+
+  /**
+   * 将十神分析数据转换为前端期望的四柱十神格式
+   */
+  private Map<String, String> convertTenGodsToShiShen(TenGodsAnalysis tenGods) {
+    Map<String, String> result = new HashMap<>();
+    
+    // 遍历所有十神
+    if (tenGods != null && tenGods.getGods() != null) {
+      tenGods.getGods().forEach((godName, info) -> {
+        if (info != null && info.getPositions() != null) {
+          for (String position : info.getPositions()) {
+            // 将 "年干" -> "yearGan", "月干" -> "monthGan" 等转换
+            String key = position.replace("年干", "yearGan")
+                               .replace("月干", "monthGan")
+                               .replace("时干", "hourGan")
+                               .replace("年支", "yearZhi")
+                               .replace("月支", "monthZhi")
+                               .replace("日支", "dayZhi")
+                               .replace("时支", "hourZhi");
+            result.put(key, godName);
+          }
+        }
+      });
+    }
+    
+    return result;
   }
 
   @Override

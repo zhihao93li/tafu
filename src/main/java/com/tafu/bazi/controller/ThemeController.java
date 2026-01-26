@@ -2,6 +2,7 @@ package com.tafu.bazi.controller;
 
 import com.tafu.bazi.dto.response.ApiResponse;
 import com.tafu.bazi.service.ThemeService;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +25,32 @@ import org.springframework.web.bind.annotation.*;
 public class ThemeController {
 
   private final ThemeService themeService;
+
+  @GetMapping("/pricing")
+  public ApiResponse<Map<String, Object>> getPricing() {
+    List<Map<String, Object>> pricing = themeService.getThemePricing();
+    return ApiResponse.success(Map.of("pricing", pricing));
+  }
+
+  @GetMapping("/status/{subjectId}")
+  public ApiResponse<Map<String, Object>> getStatus(
+      @AuthenticationPrincipal UserDetails userDetails, @PathVariable String subjectId) {
+    List<Map<String, Object>> status =
+        themeService.getThemeStatus(userDetails.getUsername(), subjectId);
+    return ApiResponse.success(Map.of("status", status));
+  }
+
+  @PostMapping("/batch")
+  public ApiResponse<Map<String, Object>> getBatch(
+      @AuthenticationPrincipal UserDetails userDetails, @RequestBody Map<String, Object> request) {
+    String subjectId = (String) request.get("subjectId");
+    @SuppressWarnings("unchecked")
+    List<String> themes = (List<String>) request.get("themes");
+
+    List<Map<String, Object>> result =
+        themeService.getThemesBatch(userDetails.getUsername(), subjectId, themes);
+    return ApiResponse.success(Map.of("themes", result));
+  }
 
   @PostMapping("/unlock")
   public ApiResponse<String> unlock(
