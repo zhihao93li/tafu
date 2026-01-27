@@ -1,5 +1,6 @@
 -- Insert Theme Pricing Configuration
 -- 插入主题价格配置
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 INSERT INTO theme_pricing (id, theme, name, description, price, original_price, is_active, sort_order)
 VALUES 
