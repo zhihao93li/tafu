@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -163,7 +164,7 @@ public class PaymentServiceImpl implements PaymentService {
 
       Map<String, String> result = new HashMap<>();
       result.put("sessionId", session.getId());
-      result.put("url", session.getUrl());
+      result.put("checkoutUrl", session.getUrl()); // 前端期望 checkoutUrl
       result.put("orderNo", order.getOrderNo());
 
       return result;
@@ -202,9 +203,16 @@ public class PaymentServiceImpl implements PaymentService {
   }
 
   @Override
-  public PaymentOrder getOrderBySessionId(String sessionId) {
+  public PaymentOrder getOrderBySessionIdOrOrderNo(String identifier) {
+    // 首先尝试通过 Stripe Session ID 查询
+    Optional<PaymentOrder> orderBySessionId = orderRepository.findByStripeSessionId(identifier);
+    if (orderBySessionId.isPresent()) {
+      return orderBySessionId.get();
+    }
+    
+    // 如果找不到，尝试通过订单号查询
     return orderRepository
-        .findByStripeSessionId(sessionId)
+        .findByOrderNo(identifier)
         .orElseThrow(() -> new BusinessException(StandardErrorCode.RESOURCE_NOT_FOUND));
   }
 

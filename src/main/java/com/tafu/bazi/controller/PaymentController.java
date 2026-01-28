@@ -69,8 +69,8 @@ public class PaymentController {
   public ApiResponse<Map<String, String>> createCheckout(
       @AuthenticationPrincipal UserDetails userDetails, @RequestBody Map<String, String> request) {
     String packageId = request.get("packageId");
-    String successUrl = request.getOrDefault("successUrl", "http://localhost:5173/payment/success");
-    String cancelUrl = request.getOrDefault("cancelUrl", "http://localhost:5173/payment/cancel");
+    String successUrl = request.getOrDefault("successUrl", frontendUrl + "/payment/success");
+    String cancelUrl = request.getOrDefault("cancelUrl", frontendUrl + "/payment/cancel");
     return ApiResponse.success(
         paymentService.createCheckoutSession(
             userDetails.getUsername(), packageId, successUrl, cancelUrl));
@@ -84,10 +84,10 @@ public class PaymentController {
     return ApiResponse.success();
   }
 
-  // 根据 Stripe Session ID 查询订单状态
-  @GetMapping("/status/{sessionId}")
-  public ApiResponse<PaymentOrder> getOrderStatus(@PathVariable String sessionId) {
-    return ApiResponse.success(paymentService.getOrderBySessionId(sessionId));
+  // 根据 Stripe Session ID 或订单号查询订单状态
+  @GetMapping("/status/{identifier}")
+  public ApiResponse<PaymentOrder> getOrderStatus(@PathVariable String identifier) {
+    return ApiResponse.success(paymentService.getOrderBySessionIdOrOrderNo(identifier));
   }
 
   // 创建码支付订单

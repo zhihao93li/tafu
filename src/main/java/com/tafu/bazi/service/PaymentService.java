@@ -36,8 +36,8 @@ public interface PaymentService {
   // Stripe Webhook 处理
   void handleWebhook(String payload, String signature);
 
-  // 根据 Stripe Session ID 查询订单
-  PaymentOrder getOrderBySessionId(String sessionId);
+  // 根据 Stripe Session ID 或订单号查询订单
+  PaymentOrder getOrderBySessionIdOrOrderNo(String identifier);
 
   // 码支付订单创建
   Map<String, Object> createMazfuOrder(String userId, String packageId, String device);
