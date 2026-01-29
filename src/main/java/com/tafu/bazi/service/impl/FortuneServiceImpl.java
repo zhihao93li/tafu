@@ -10,17 +10,17 @@ import com.tafu.bazi.exception.StandardErrorCode;
 import com.tafu.bazi.service.FortuneService;
 import com.tafu.bazi.service.SubjectService;
 import com.tafu.bazi.utils.BaziResultOptimizer;
+import com.theokanning.openai.completion.chat.ChatCompletionRequest;
+import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.completion.chat.ChatMessageRole;
+import com.theokanning.openai.service.OpenAiService;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -43,9 +43,8 @@ public class FortuneServiceImpl implements FortuneService {
 
   private final SubjectService subjectService;
   private final AiPromptsConfig aiPromptsConfig;
-  private final ChatClient chatClient;
+  private final OpenAiService openAiService;
   private final ObjectMapper objectMapper;
-  private final org.springframework.ai.openai.OpenAiChatOptions openAiChatOptions;
 
   @Override
   @Transactional
@@ -70,14 +69,20 @@ public class FortuneServiceImpl implements FortuneService {
 
     String aiResponse;
     try {
+      List<ChatMessage> messages = new ArrayList<>();
+      messages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemPrompt));
+      messages.add(new ChatMessage(ChatMessageRole.USER.value(), userPrompt));
+
+      ChatCompletionRequest request =
+          ChatCompletionRequest.builder()
+              .model(aiPromptsConfig.getModel())
+              .messages(messages)
+              .temperature(aiPromptsConfig.getTemperature())
+              .maxTokens(aiPromptsConfig.getMaxTokens())
+              .build();
+
       aiResponse =
-          chatClient
-              .prompt(
-                  new Prompt(
-                      List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
-                      openAiChatOptions))
-              .call()
-              .content();
+          openAiService.createChatCompletion(request).getChoices().get(0).getMessage().getContent();
     } catch (Exception e) {
       log.error("AI Call Failed", e);
       throw new BusinessException(StandardErrorCode.SYSTEM_ERROR.getCode(), "AI 服务暂时不可用");
@@ -112,38 +117,56 @@ public class FortuneServiceImpl implements FortuneService {
     String userPromptTemplate = aiPromptsConfig.getPrompts().getInitial().getUser();
     String userPrompt = replacePlaceholders(userPromptTemplate, subject);
 
-    // 2. 调用 AI 流式接口 with options from ai-prompts.yaml
+    // 2. 调用 AI 流式接口
     log.info("Calling AI stream for initial analysis, subject: {}", subjectId);
 
-    AtomicReference<StringBuilder> fullContent = new AtomicReference<>(new StringBuilder());
+    return Flux.create(
+        sink -> {
+          try {
+            List<ChatMessage> messages = new ArrayList<>();
+            messages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemPrompt));
+            messages.add(new ChatMessage(ChatMessageRole.USER.value(), userPrompt));
 
-    return chatClient
-        .prompt(
-            new Prompt(
-                List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
-                openAiChatOptions))
-        .stream()
-        .content()
-        .doOnNext(chunk -> fullContent.get().append(chunk))
-        .doOnComplete(
-            () -> {
-              // 流式传输完成后保存完整结果
-              try {
-                Map<String, Object> result = new HashMap<>();
-                result.put("content", fullContent.get().toString());
-                subject.setInitialAnalysis(result);
-                subject.setInitialAnalyzedAt(LocalDateTime.now());
-                log.info("Stream analysis completed for subject: {}", subjectId);
-              } catch (Exception e) {
-                log.error("Failed to save stream analysis result", e);
-              }
-            })
-        .onErrorResume(
-            e -> {
-              log.error("AI Stream Call Failed", e);
-              return Flux.error(
-                  new BusinessException(StandardErrorCode.SYSTEM_ERROR.getCode(), "AI 服务暂时不可用"));
-            });
+            ChatCompletionRequest request =
+                ChatCompletionRequest.builder()
+                    .model(aiPromptsConfig.getModel())
+                    .messages(messages)
+                    .temperature(aiPromptsConfig.getTemperature())
+                    .maxTokens(aiPromptsConfig.getMaxTokens())
+                    .stream(true)
+                    .build();
+
+            StringBuilder fullContent = new StringBuilder();
+            openAiService
+                .streamChatCompletion(request)
+                .doOnError(sink::error)
+                .blockingForEach(
+                    chunk -> {
+                      if (chunk.getChoices() != null
+                          && !chunk.getChoices().isEmpty()
+                          && chunk.getChoices().get(0).getMessage() != null) {
+                        String content = chunk.getChoices().get(0).getMessage().getContent();
+                        if (content != null) {
+                          fullContent.append(content);
+                          sink.next(content);
+                        }
+                      }
+                    });
+
+            // 保存完整结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", fullContent.toString());
+            subject.setInitialAnalysis(result);
+            subject.setInitialAnalyzedAt(LocalDateTime.now());
+            log.info("Stream analysis completed for subject: {}", subjectId);
+
+            sink.complete();
+          } catch (Exception e) {
+            log.error("AI Stream Call Failed", e);
+            sink.error(
+                new BusinessException(StandardErrorCode.SYSTEM_ERROR.getCode(), "AI 服务暂时不可用"));
+          }
+        });
   }
 
   private String replacePlaceholders(String template, Subject subject) {

@@ -11,17 +11,18 @@ import com.tafu.bazi.repository.TaskRepository;
 import com.tafu.bazi.repository.ThemeAnalysisRepository;
 import com.tafu.bazi.service.SubjectService;
 import com.tafu.bazi.utils.BaziResultOptimizer;
+import com.theokanning.openai.completion.chat.ChatCompletionRequest;
+import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.completion.chat.ChatMessageRole;
+import com.theokanning.openai.service.OpenAiService;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,12 +45,11 @@ public class TaskProcessor {
   private final TaskRepository taskRepository;
   private final ThemeAnalysisRepository themeAnalysisRepository;
   private final SubjectService subjectService;
-  private final ChatClient chatClient;
+  private final OpenAiService openAiService;
   private final AiPromptsConfig aiPromptsConfig;
   private final ObjectMapper objectMapper;
   private final com.tafu.bazi.service.PointsService pointsService;
   private final com.tafu.bazi.repository.ThemePricingRepository themePricingRepository;
-  private final org.springframework.ai.openai.OpenAiChatOptions openAiChatOptions;
 
   private final org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor taskExecutor;
 
@@ -190,14 +190,20 @@ public class TaskProcessor {
 
     String aiResponse;
     try {
+      List<ChatMessage> messages = new ArrayList<>();
+      messages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemPrompt));
+      messages.add(new ChatMessage(ChatMessageRole.USER.value(), userPrompt));
+
+      ChatCompletionRequest request =
+          ChatCompletionRequest.builder()
+              .model(aiPromptsConfig.getModel())
+              .messages(messages)
+              .temperature(aiPromptsConfig.getTemperature())
+              .maxTokens(aiPromptsConfig.getMaxTokens())
+              .build();
+
       aiResponse =
-          chatClient
-              .prompt(
-                  new Prompt(
-                      List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
-                      openAiChatOptions))
-              .call()
-              .content();
+          openAiService.createChatCompletion(request).getChoices().get(0).getMessage().getContent();
       log.info("AI response received, length: {}", aiResponse != null ? aiResponse.length() : 0);
     } catch (Exception e) {
       log.error("Failed to call AI API for theme: {}, subject: {}", theme, subjectId, e);
