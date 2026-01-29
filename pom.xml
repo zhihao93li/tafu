@@ -18,7 +18,7 @@
         <java.version>21</java.version>
         <spring-ai.version>1.0.0-SNAPSHOT</spring-ai.version> <!-- Check latest stable if possible, or use M1 -->
         <testcontainers.version>1.19.7</testcontainers.version>
-        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
         <lombok.version>1.18.30</lombok.version>
         <jjwt.version>0.12.5</jjwt.version>
         <spotless.version>2.43.0</spotless.version>
