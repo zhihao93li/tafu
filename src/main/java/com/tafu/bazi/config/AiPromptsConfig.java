@@ -3,7 +3,9 @@ package com.tafu.bazi.config;
 import java.util.Map;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 /**
  * AiPromptsConfig
@@ -19,7 +21,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "") // Root level mapping if yaml structure is at root
+@EnableConfigurationProperties(AiPromptsConfig.class)
+@ConfigurationProperties(prefix = "")
+@PropertySource(value = "classpath:ai-prompts.yaml", factory = YamlPropertySourceFactory.class)
 public class AiPromptsConfig {
 
   private String provider;
