@@ -26,8 +26,8 @@ spring:
   # Note: Model configuration is managed in ai-prompts.yaml (higher priority)
   ai:
     openai:
-      api-key: ${AIHUBMIX_API_KEY}
-      base-url: ${AIHUBMIX_BASE_URL:https://aihubmix.com}
+      api-key: ${SPRING_AI_OPENAI_API_KEY:${AIHUBMIX_API_KEY:}}
+      base-url: ${SPRING_AI_OPENAI_BASE_URL:${AIHUBMIX_BASE_URL:https://aihubmix.com/v1}}
 
 app:
   task:
