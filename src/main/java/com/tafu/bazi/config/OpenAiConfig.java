@@ -31,13 +31,13 @@ public class OpenAiConfig {
         "API Key: {}... (length: {})",
         apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) : "null",
         apiKey != null ? apiKey.length() : 0);
-    
+
     // 额外诊断信息
-    log.info("Environment variable SPRING_AI_OPENAI_BASE_URL: {}", 
+    log.info(
+        "Environment variable SPRING_AI_OPENAI_BASE_URL: {}",
         env.getProperty("SPRING_AI_OPENAI_BASE_URL"));
-    log.info("Environment variable AIHUBMIX_BASE_URL: {}", 
-        env.getProperty("AIHUBMIX_BASE_URL"));
-    
+    log.info("Environment variable AIHUBMIX_BASE_URL: {}", env.getProperty("AIHUBMIX_BASE_URL"));
+
     log.info("================================");
   }
 }
