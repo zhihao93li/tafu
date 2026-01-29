@@ -1,12 +1,17 @@
 package com.tafu.bazi.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theokanning.openai.service.OpenAiService;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import retrofit2.Retrofit;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 
 /**
  * OpenAI Client Configuration
@@ -38,21 +43,20 @@ public class OpenAiClientConfig {
     log.info("=======================================");
 
     // 创建带自定义 base URL 的 OpenAiService
-    com.theokanning.openai.client.OpenAiApi openAiApi =
-        new retrofit2.Retrofit.Builder()
-            .baseUrl(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/")
-            .client(
-                com.theokanning.openai.service.OpenAiService.defaultClient(
-                        apiKey, Duration.ofSeconds(60))
-                    .newBuilder()
-                    .build())
-            .addConverterFactory(
-                com.theokanning.openai.service.OpenAiService.defaultConverterFactory())
-            .addCallAdapterFactory(
-                com.theokanning.openai.service.OpenAiService.defaultCallAdapterFactory())
-            .build()
-            .create(com.theokanning.openai.client.OpenAiApi.class);
+    ObjectMapper mapper = OpenAiService.defaultObjectMapper();
+    OkHttpClient client = OpenAiService.defaultClient(apiKey, Duration.ofSeconds(60));
 
-    return new OpenAiService(openAiApi);
+    Retrofit retrofit =
+        new Retrofit.Builder()
+            .baseUrl(baseUrl.endsWith("/") ? baseUrl : baseUrl + "/")
+            .client(client)
+            .addConverterFactory(JacksonConverterFactory.create(mapper))
+            .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+            .build();
+
+    com.theokanning.openai.client.OpenAiApi api =
+        retrofit.create(com.theokanning.openai.client.OpenAiApi.class);
+
+    return new OpenAiService(api);
   }
 }
