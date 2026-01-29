@@ -209,7 +209,7 @@ public class PaymentServiceImpl implements PaymentService {
     if (orderBySessionId.isPresent()) {
       return orderBySessionId.get();
     }
-    
+
     // 如果找不到，尝试通过订单号查询
     return orderRepository
         .findByOrderNo(identifier)
