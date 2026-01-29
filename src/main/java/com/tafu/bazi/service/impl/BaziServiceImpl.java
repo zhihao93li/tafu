@@ -597,8 +597,6 @@ public class BaziServiceImpl implements BaziService {
   }
 
   private String getTenGod(StemInfo dayStem, StemInfo otherStem) {
-    if (dayStem.getChinese().equals(otherStem.getChinese())) return "比肩";
-
     FiveElement dayEl = dayStem.getElement();
     BaziDef.YinYang dayYY = dayStem.getYinYang();
     FiveElement otherEl = otherStem.getElement();
