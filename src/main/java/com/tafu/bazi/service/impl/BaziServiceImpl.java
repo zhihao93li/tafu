@@ -200,6 +200,13 @@ public class BaziServiceImpl implements BaziService {
       if (stemInfo != null) {
         stemObj.put("element", stemInfo.getElement().getCode());
         stemObj.put("yinYang", stemInfo.getYinYang().name().toLowerCase());
+        // 计算藏干相对于日主的十神关系
+        if (dayMasterInfo != null) {
+          String hiddenStemTenGod = getTenGod(dayMasterInfo, stemInfo);
+          if (hiddenStemTenGod != null) {
+            stemObj.put("tenGod", hiddenStemTenGod);
+          }
+        }
       }
       hiddenStemsObj.add(stemObj);
     }

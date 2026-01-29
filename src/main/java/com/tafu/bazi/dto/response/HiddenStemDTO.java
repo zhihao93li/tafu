@@ -24,4 +24,7 @@ public class HiddenStemDTO {
 
   /** 阴阳属性（yang/yin） */
   private String yinYang;
+
+  /** 十神关系（相对于日主） */
+  private String tenGod;
 }

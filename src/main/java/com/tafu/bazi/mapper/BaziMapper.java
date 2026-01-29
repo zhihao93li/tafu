@@ -68,6 +68,7 @@ public class BaziMapper {
                           .chinese(stemMap.get("chinese"))
                           .element(stemMap.get("element"))
                           .yinYang(stemMap.get("yinYang"))
+                          .tenGod(stemMap.get("tenGod"))
                           .build())
               .collect(Collectors.toList());
     }
